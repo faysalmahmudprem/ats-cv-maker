@@ -15,6 +15,7 @@ node_modules/
 dist/
 build/
 .vite/
+coverage/
 *.tsbuildinfo
 npm-debug.log*
 
@@ -29,7 +30,7 @@ secrets.json
 # ---- Generated files ----
 output/
 *.docx
-!tests/fixtures/*.docx
+!backend/tests/fixtures/*.docx
 *.zip
 *.tmp
 *.log
