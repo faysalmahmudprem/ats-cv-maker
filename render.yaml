@@ -1,0 +1,23 @@
+# Render.com deployment for the FastAPI backend.
+#
+# After the first deploy, set these environment variables in the Render
+# dashboard (do NOT put real origins in this public file):
+#   CORS_ORIGINS  — comma-separated list of allowed frontend origins,
+#                   e.g. https://your-site.netlify.app
+#
+# The app reads PORT automatically from the platform (see startCommand).
+
+services:
+  - type: web
+    name: cv-generator-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # Uvicorn binds to the host/port provided by the platform via $PORT.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      - key: ENVIRONMENT
+        value: production

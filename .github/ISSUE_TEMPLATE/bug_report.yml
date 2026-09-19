@@ -1,0 +1,55 @@
+name: Bug report
+description: Report something broken or behaving unexpectedly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the
+        details below — the more precise, the faster it gets fixed.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Fill in '...'
+        3. Click '...'
+        4. See the error
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Editor (frontend)
+        - Live preview (frontend)
+        - CV generation (.docx / PDF download)
+        - CV import (upload)
+        - ATS score checker
+        - Deployment / infrastructure
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output / error messages
+      description: Browser console output or backend logs, if any.
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser and OS, or whether you self-hosted the backend.
+      placeholder: e.g. Chrome 130 on Windows 11, or self-hosted on Render
+    validations:
+      required: false

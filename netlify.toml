@@ -1,0 +1,26 @@
+# Netlify configuration for the React + Vite frontend.
+#
+# Required environment variable (set in Netlify UI → Site settings →
+# Environment variables, NOT in this file):
+#   VITE_API_URL  — full base URL of the FastAPI backend, e.g.
+#                   https://cv-generator-api.onrender.com
+#                   (no trailing slash, no secrets)
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback: serve index.html for any route React should handle.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers (no secrets here — this file is public).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

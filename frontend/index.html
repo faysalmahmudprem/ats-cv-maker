@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Free ATS CV Generator — No Signup, Real .docx</title>
+    <meta
+      name="description"
+      content="Build an ATS-friendly CV in 2 minutes. Free worldwide, no signup. Fill the form, download a clean Word (.docx) file."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="keywords"
+      content="CV generator, ATS resume, free resume builder, docx CV, resume builder no signup"
+    />
+    <meta property="og:title" content="Free ATS CV Generator — No Signup" />
+    <meta
+      property="og:description"
+      content="ATS-friendly CV in 2 minutes. Download as Word or PDF. Free worldwide, no login, no paywall."
+    />
+    <meta property="og:type" content="website" />
+    <!-- Absolute URLs are required for og:image (FB/LinkedIn/WhatsApp cannot
+         resolve relative URLs). __SITE_URL__ is replaced at build time by the
+         vite config plugin from VITE_SITE_URL (set it in the Netlify UI). -->
+    <meta property="og:url" content="__SITE_URL__" />
+    <link rel="canonical" href="__SITE_URL__" />
+    <meta property="og:image" content="__SITE_URL__/og-image.png" />
+    <meta
+      property="og:image:alt"
+      content="ATS CV Generator — build a clean CV and download it as Word or PDF"
+    />
+    <meta name="theme-color" content="#26354d" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2326354d'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'/%3E%3C/svg%3E"
+    />
+    <!-- No third-party resources: the UI font falls back to the system UI
+         stack (see styles.css font-family) and there is no analytics or
+         telemetry script. This deliberately matches the Privacy Policy, which
+         states there are no third-party requests and no tracking. -->
+    <style>
+      /* Boot skeleton: visible until React mounts (can be 2-4s on 3G +
+         mid-range phones). Replaced automatically when the app renders. */
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #boot-skeleton {
+        max-width: 560px;
+        margin: 40vh auto 0;
+        text-align: center;
+        font-family: system-ui, sans-serif;
+        color: #5b6b82;
+        font-size: 14px;
+      }
+      #boot-skeleton .ring {
+        width: 34px;
+        height: 34px;
+        margin: 0 auto 12px;
+        border-radius: 50%;
+        border: 3px solid #dde4ee;
+        border-top-color: #26354d;
+        animation: boot-spin 0.7s linear infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="boot-skeleton" role="status" aria-live="polite">
+        <div class="ring"></div>
+        Loading the CV builder…
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or support
+    url: https://github.com/faysalmahmudprem/ats-cv-maker/discussions
+    about: Ask how something works or get help using the app. Security issues go to hello@faysalmahmudprem.com (see SECURITY.md).

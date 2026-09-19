@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an idea or improvement for the CV generator
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature ideas are welcome! Before opening this, please check the
+        "Future roadmap" section of the README — your idea may already be
+        listed there.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the job you're trying to get done, not just the solution you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen? Mockups or examples from other tools are helpful.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: ATS constraint check
+      description: This project keeps every template ATS-friendly (single column, no tables/images, real text). Does your idea respect that?
+      options:
+        - label: My proposal keeps generated CVs ATS-friendly
+          required: true
+        - label: This doesn't affect generated CV files
+          required: false

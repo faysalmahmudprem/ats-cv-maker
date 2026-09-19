@@ -1,0 +1,54 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# ---- Environment variables & secrets (NEVER commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ---- Generated files ----
+output/
+*.docx
+!tests/fixtures/*.docx
+*.zip
+*.tmp
+*.log
+
+# Runtime state — the file-backed stats counter was removed in Phase 1;
+# nothing under backend/data/ should be committed.
+backend/data/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- IDEs ----
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- Deployment platforms ----
+.render/
+.netlify/
