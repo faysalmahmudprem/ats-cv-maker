@@ -6,10 +6,12 @@
 #                   e.g. https://your-site.netlify.app
 #
 # The app reads PORT automatically from the platform (see startCommand).
+# NOTE: edit this file in the repo, not in the Render dashboard — the
+# dashboard editor strips these comments on save.
 
 services:
   - type: web
-    name: cv-generator-api
+    name: ats-cv-maker-api
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
