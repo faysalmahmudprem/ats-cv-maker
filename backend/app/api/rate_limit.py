@@ -84,14 +84,19 @@ class RateLimitMiddleware:
         """Best-effort client IP, honouring the first X-Forwarded-For hop.
 
         The app runs behind Render's proxy, so the socket peer is the proxy;
-        the forwarded header carries the real client.
+        the forwarded header carries the real client — but only when
+        TRUST_XFF=1. Otherwise the header is ignored so a client cannot
+        dodge the limiter by spoofing a fresh IP per request.
         """
-        headers = dict(scope.get("headers") or [])
-        forwarded = headers.get(b"x-forwarded-for")
-        if forwarded:
-            first = forwarded.split(b",")[0].strip().decode("latin-1", "ignore")
-            if first:
-                return first
+        from app.config import settings as _settings
+
+        if _settings.TRUST_XFF:
+            headers = dict(scope.get("headers") or [])
+            forwarded = headers.get(b"x-forwarded-for")
+            if forwarded:
+                first = forwarded.split(b",")[0].strip().decode("latin-1", "ignore")
+                if first:
+                    return first
         client = scope.get("client")
         if client:
             return str(client[0])

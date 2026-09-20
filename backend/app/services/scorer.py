@@ -27,9 +27,21 @@ ACTION_VERBS = [
 ]
 
 TECH_KEYWORDS = [
+    # Software / IT (original list, kept).
     "javascript", "python", "php", "react", "laravel", "django", "mysql",
     "postgresql", "api", "rest", "git", "docker", "aws", "linux",
     "typescript", "node", "sql",
+    # Cross-industry professional skills: finance, healthcare, education,
+    # marketing, operations, trades. Without these, non-engineering CVs
+    # always failed the "technical skills" check.
+    "excel", "accounting", "bookkeeping", "auditing", "budgeting",
+    "financial", "marketing", "sales", "seo", "crm", "negotiation",
+    "nursing", "patient", "clinical", "pharmacy", "caregiving",
+    "teaching", "curriculum", "training", "research", "laboratory",
+    "engineering", "autocad", "welding", "machining", "electrician",
+    "plumbing", "driving", "logistics", "warehouse", "procurement",
+    "photoshop", "illustrator", "design", "writing", "editing",
+    "customer service", "data entry",
 ]
 
 SOFT_SKILLS = [
@@ -38,7 +50,7 @@ SOFT_SKILLS = [
 ]
 
 BOX_CHARS = ["│", "┌", "╔"]
-BULLET_MARKS = ["•", "-", "▪"]
+BULLET_MARKS = ["•", "-", "▪", "·", "‣", "◦", "–", "—", "●", "○", "∙"]
 
 SECTION_HEADINGS = [
     "experience", "education", "skills", "summary", "objective",

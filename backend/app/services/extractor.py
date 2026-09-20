@@ -34,8 +34,9 @@ def _kind_hint(filename: str) -> str:
     _, _, ext = (filename or "").rpartition(".")
     return f".{ext.lower()}" if ext else "<no-extension>"
 
-try:  # PyMuPDF (imported as `fitz` historically; `pymupdf` is the modern name)
-    import fitz  # type: ignore
+try:  # PyMuPDF (imported as `pymupdf`; the legacy `fitz` alias is deprecated)
+    import pymupdf  # type: ignore
+    fitz = pymupdf  # type: ignore  # legacy alias kept for internal use
 except ImportError:  # pragma: no cover
     fitz = None  # type: ignore
 
@@ -71,7 +72,20 @@ def _docx_text(data: bytes) -> str:
     except Exception:
         logger.exception("DOCX text extraction failed")
         return ""
-    parts: list[str] = [p.text for p in doc.paragraphs]
+    parts: list[str] = []
+    for p in doc.paragraphs:
+        text = p.text
+        # python-docx paragraph text never includes the list glyph: a
+        # "List Bullet" paragraph reads as plain text, so the ATS scorer
+        # (which counts leading bullet markers) would conclude our own
+        # generated CVs have no bullets. Preserve the marker explicitly.
+        try:
+            style_name = (p.style.name or "").lower()
+        except Exception:
+            style_name = ""
+        if "list" in style_name and text.strip():
+            text = "• " + text.strip()
+        parts.append(text)
     # Table cells: ATS-relevant content often hides in tables.
     for table in doc.tables:
         for row in table.rows:

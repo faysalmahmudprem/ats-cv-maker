@@ -32,8 +32,9 @@ from typing import Any, Dict, List, Optional
 
 from docx import Document as DocxDocument
 
-try:  # PyMuPDF
-    import fitz  # type: ignore
+try:  # PyMuPDF (imported as `pymupdf`; the legacy `fitz` alias is deprecated)
+    import pymupdf  # type: ignore
+    fitz = pymupdf  # type: ignore  # legacy alias kept for internal use
 except ImportError:  # pragma: no cover
     fitz = None  # type: ignore
 
@@ -123,26 +124,62 @@ class ImportResult:
 # ---------------------------------------------------------------------------
 
 
+def _para_to_line(para) -> ParsedLine | None:
+    """Convert one python-docx paragraph to a ParsedLine (None when blank)."""
+    text = para.text.strip()
+    if not text:
+        return None
+    style_name = (para.style.name or "").lower()
+    is_bullet = "list" in style_name or bool(BULLET_PREFIX_RE.match(text))
+    bold = False
+    size = 0.0
+    for run in para.runs:
+        if run.bold:
+            bold = True
+        if run.font.size:
+            size = max(size, run.font.size.pt)
+    if style_name.startswith("heading"):
+        bold = True
+        size = max(size, 14.0)
+    return ParsedLine(text=text, bold=bold, font_size=size, is_bullet=is_bullet)
+
+
 def _docx_lines(data: bytes) -> List[ParsedLine]:
+    from docx.oxml.ns import qn
+
     doc = DocxDocument(io.BytesIO(data))
     lines: List[ParsedLine] = []
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        if not text:
-            continue
-        style_name = (para.style.name or "").lower()
-        is_bullet = "list" in style_name or bool(BULLET_PREFIX_RE.match(text))
-        bold = False
-        size = 0.0
-        for run in para.runs:
-            if run.bold:
-                bold = True
-            if run.font.size:
-                size = max(size, run.font.size.pt)
-        if style_name.startswith("heading"):
-            bold = True
-            size = max(size, 14.0)
-        lines.append(ParsedLine(text=text, bold=bold, font_size=size, is_bullet=is_bullet))
+    # Walk the document body in order so paragraphs and tables keep their
+    # reading order (a plain ``doc.paragraphs`` loop silently drops every
+    # table cell — the most common layout in real-world CVs).
+    para_by_elm = {para._p: para for para in doc.paragraphs}
+    table_by_elm = {table._tbl: table for table in doc.tables}
+    body = doc.element.body
+    for child in body.iterchildren():
+        if child.tag == qn("w:p"):
+            para = para_by_elm.get(child)
+            if para is None:
+                continue
+            line = _para_to_line(para)
+            if line is not None:
+                lines.append(line)
+        elif child.tag == qn("w:tbl"):
+            table = table_by_elm.get(child)
+            if table is None:
+                continue
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        line = _para_to_line(para)
+                        if line is not None:
+                            lines.append(line)
+    # Fallback: if body-walk found nothing (unusual document structure),
+    # fall back to the flat paragraph list so we never return less.
+    if not lines:
+        for para in doc.paragraphs:
+            line = _para_to_line(para)
+            if line is not None:
+                lines.append(line)
     return lines
 
 

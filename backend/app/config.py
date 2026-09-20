@@ -68,6 +68,11 @@ class Settings:
     RATE_LIMIT_WINDOW_SECONDS: int = int(
         os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60")
     )
+    # X-Forwarded-For is only trustworthy when the app sits behind a proxy
+    # that sets it (e.g. Render). When TRUST_XFF=0 the socket peer IP is
+    # used instead, so clients cannot dodge the limiter by spoofing the
+    # header. Default 1 preserves current Render behaviour.
+    TRUST_XFF: bool = os.environ.get("TRUST_XFF", "1") == "1"
 
 
 settings = Settings()
