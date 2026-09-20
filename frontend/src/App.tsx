@@ -360,21 +360,40 @@ export default function App() {
   // JSON GET), invisible for the user — and every ping doubles as a health
   // update for the header indicator.
   const warmedUpRef = useRef(false);
+  const keepAliveIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!hasContent(cv) || warmedUpRef.current) return;
-    warmedUpRef.current = true;
-
-    let cancelled = false;
-    const ping = () => {
+    // No content -> no reason to burn host hours; stop any keep-alive.
+    if (!hasContent(cv)) {
+      if (keepAliveIdRef.current !== null) {
+        window.clearInterval(keepAliveIdRef.current);
+        keepAliveIdRef.current = null;
+      }
+      return;
+    }
+    if (!warmedUpRef.current) {
+      warmedUpRef.current = true;
       checkBackendHealth().then((ok) => {
-        if (!cancelled) setApiHealthy(ok);
+        setApiHealthy(ok);
       });
-    };
-    ping();
-    const interval = window.setInterval(ping, 10 * 60_000);
+    }
+    // (Re)start a single keep-alive while content exists; the cleanup
+    // below plus the empty-content branch above guarantee it never runs
+    // forever once the editor is cleared or unmounted.
+    if (keepAliveIdRef.current === null) {
+      keepAliveIdRef.current = window.setInterval(() => {
+        if (document.visibilityState !== "visible") return;
+        void checkBackendHealth().then((ok) => {
+          setApiHealthy(ok);
+        });
+      }, 10 * 60_000);
+    }
     return () => {
-      cancelled = true;
-      window.clearInterval(interval);
+      // Always stop on cleanup (unmount / re-run); the effect body above
+      // restarts the single interval only while content exists.
+      if (keepAliveIdRef.current !== null) {
+        window.clearInterval(keepAliveIdRef.current);
+        keepAliveIdRef.current = null;
+      }
     };
   }, [cv]);
 

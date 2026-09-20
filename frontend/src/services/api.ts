@@ -92,7 +92,22 @@ export async function checkScore(
       body: form,
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error("Score check failed");
+    if (!res.ok) {
+      let message = "Score check failed";
+      try {
+        const data = await res.json();
+        if (typeof (data as { error?: unknown }).error === "string") {
+          message = (data as { error: string }).error;
+        } else if (typeof (data as { detail?: unknown }).detail === "string") {
+          message = (data as { detail: string }).detail;
+        } else {
+          message = `Score check failed (HTTP ${res.status})`;
+        }
+      } catch {
+        message = `Score check failed (HTTP ${res.status})`;
+      }
+      throw new Error(message);
+    }
     return (await res.json()) as ScoreResult;
   } finally {
     clearTimeout(timer);

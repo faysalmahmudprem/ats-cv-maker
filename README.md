@@ -226,6 +226,7 @@ See `frontend/.env.example`.
 | `MAX_EXTRACT_CHARS`  | `200000`             | Cap on text extracted from an upload      |
 | `RATE_LIMIT_ENABLED` | `1`                  | Per-IP limiting of heavy endpoints (0 = off) |
 | `RATE_LIMIT_PER_MINUTE` | `30`              | Requests per minute per IP                |
+| `TRUST_XFF` | `1` | Trust X-Forwarded-For for rate-limit IP (set 0 if not behind a trusted proxy) |
 | `ENVIRONMENT`        | `development`        | Informational                             |
 
 No secrets are required — the app stores nothing.
