@@ -32,11 +32,26 @@ from typing import Any, Dict, List, Optional
 
 from docx import Document as DocxDocument
 
-try:  # PyMuPDF (imported as `pymupdf`; the legacy `fitz` alias is deprecated)
-    import pymupdf  # type: ignore
-    fitz = pymupdf  # type: ignore  # legacy alias kept for internal use
-except ImportError:  # pragma: no cover
-    fitz = None  # type: ignore
+# Structured PDF import (per-line bold/size reconstruction) still uses
+# PyMuPDF (AGPL/commercial) because pypdf does not expose the per-span
+# font sizes this heuristic needs. The import is lazy and confined to the
+# PDF-import helpers below so the DOCX path and the scorer path never
+# require it. Dev-only thumbnail rendering also uses it optionally; the
+# production scorer/extractor path uses pypdf (BSD-3-Clause).
+# Follow-up: replace with a permissively licensed layout-aware extractor
+# when one is verified against backend/tests/test_import.py.
+
+
+def _require_pymupdf():
+    """Import PyMuPDF lazily; raise a clear error when it is absent."""
+    try:
+        import pymupdf  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError(
+            "Structured PDF import needs the optional PyMuPDF dependency "
+            "(pip install pymupdf). DOCX import and ATS scoring work without it."
+        ) from exc
+    return pymupdf
 
 
 # DOCX mime we generate ourselves; be liberal in what we accept.
@@ -184,10 +199,9 @@ def _docx_lines(data: bytes) -> List[ParsedLine]:
 
 
 def _pdf_lines(data: bytes) -> List[ParsedLine]:
-    if fitz is None:  # pragma: no cover
-        raise RuntimeError("PyMuPDF is not installed")
+    pymupdf = _require_pymupdf()
     lines: List[ParsedLine] = []
-    with fitz.open(stream=data, filetype="pdf") as doc:
+    with pymupdf.open(stream=data, filetype="pdf") as doc:
         for page in doc:
             # Blocks preserve rough reading order; sort within a block
             # top-to-bottom, left-to-right.
@@ -205,10 +219,9 @@ def _pdf_lines(data: bytes) -> List[ParsedLine]:
 
 def _pdf_lines_sized(data: bytes) -> List[ParsedLine]:
     """PDF extraction with font sizes (for entry splitting)."""
-    if fitz is None:  # pragma: no cover
-        raise RuntimeError("PyMuPDF is not installed")
+    pymupdf = _require_pymupdf()
     lines: List[ParsedLine] = []
-    with fitz.open(stream=data, filetype="pdf") as doc:
+    with pymupdf.open(stream=data, filetype="pdf") as doc:
         for page in doc:
             d = page.get_text("dict")
             for block in d.get("blocks", []):
@@ -567,7 +580,9 @@ def parse_cv_file(
     Raises ValueError for unsupported/corrupt files.
     """
     if doc_kind == "pdf":
-        if fitz is None:
+        try:
+            pymupdf = _require_pymupdf()
+        except RuntimeError:
             raise ValueError("PDF support is not available on the server.")
         try:
             lines = _pdf_lines_sized(data)
@@ -650,10 +665,21 @@ def _split_sections_into_result(lines: List[ParsedLine], result: ImportResult) -
 
 
 def _pdf_page_count(data: bytes) -> int:
-    if fitz is None:
+    try:
+        from pypdf import PdfReader as _PdfReader  # type: ignore
+    except ImportError:
+        _PdfReader = None  # type: ignore
+    if _PdfReader is not None:
+        try:
+            return max(1, len(_PdfReader(io.BytesIO(data)).pages))
+        except Exception:
+            return 1
+    try:
+        pymupdf = _require_pymupdf()
+    except RuntimeError:
         return 1
     try:
-        with fitz.open(stream=data, filetype="pdf") as doc:
+        with pymupdf.open(stream=data, filetype="pdf") as doc:
             return max(1, doc.page_count)
     except Exception:
         return 1

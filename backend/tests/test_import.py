@@ -108,12 +108,13 @@ def test_pdf_roundtrip_recovers_core_fields():
 def test_scanned_pdf_gets_honest_error():
     # A PDF with no text (image-only/scan) is the classic failure case:
     # a page with nothing extractable behaves identically to a scan.
-    import fitz
+    # Built with pypdf (BSD-3-Clause) so the suite runs without PyMuPDF.
+    from pypdf import PdfWriter
 
     buf = io.BytesIO()
-    doc = fitz.open()
-    doc.new_page()  # empty page: no text layer
-    doc.save(buf)
+    writer = PdfWriter()
+    writer.add_blank_page(width=595, height=842)  # empty page: no text layer
+    writer.write(buf)
     data = buf.getvalue()
     with pytest.raises(ValueError) as exc:
         parse_cv_file(data, "pdf", "scan.pdf")

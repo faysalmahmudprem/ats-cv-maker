@@ -5,14 +5,16 @@ For every registered template this script:
      match real output),
   2. converts DOCX -> PDF with locally installed Microsoft Word (COM via
      scripts/docx2pdf.ps1),
-  3. renders page 1 -> PNG with PyMuPDF into frontend/src/assets/templates/.
+  3. renders page 1 -> PNG with a PDF renderer into
+     frontend/src/assets/templates/.
 
 Run from the backend/ directory:
     python scripts/generate_template_previews.py
 
 Requirements (dev only, never runtime deps): Microsoft Word installed,
-`pip install pymupdf`. The produced PNGs ARE committed so the frontend
-never needs Word or this script.
+`pip install pymupdf` (optional dev-only; AGPL/commercial licensed —
+kept out of the production requirements.txt). The produced PNGs ARE
+committed so the frontend never needs Word or this script.
 """
 
 from __future__ import annotations
@@ -21,8 +23,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-import pymupdf
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
@@ -99,6 +99,11 @@ PNG_DPI = 96  # A4 -> 794 x 1123 px
 
 
 def render_png(pdf_path: Path, png_path: Path) -> None:
+    try:
+        import pymupdf
+    except ImportError:
+        print("PyMuPDF missing. Run: pip install pymupdf")
+        raise SystemExit(1)
     with pymupdf.open(pdf_path) as pdf:
         page = pdf[0]
         pix = page.get_pixmap(dpi=PNG_DPI)

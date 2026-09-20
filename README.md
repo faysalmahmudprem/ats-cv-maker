@@ -3,7 +3,7 @@
 # ATS CV Generator
 
 **Build an ATS-friendly CV in 2 minutes — download it as Word or PDF.**
-Free · No signup · No paywall · Nothing stored
+Free · No signup · No paywall · No stored CVs
 
 [![CI](https://github.com/faysalmahmudprem/ats-cv-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/faysalmahmudprem/ats-cv-maker/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -16,8 +16,9 @@ Free · No signup · No paywall · Nothing stored
 
 Fill in a structured form, watch a live A4 preview update as you type, and
 download a clean `.docx` or PDF that applicant tracking systems (ATS) can
-actually read. Your data never leaves the browser except to generate the
-file — there are no accounts, no database, and no server-side storage.
+actually read. No accounts, no database, no stored CVs: your entries are
+sent to the API only to build the file, processed in memory, and never
+saved. Drafts stay in your own browser.
 
 ## ✨ Features
 
@@ -41,6 +42,11 @@ file — there are no accounts, no database, and no server-side storage.
   Enter-to-insert, instead of one big textarea.
 - **Draft autosave** — drafts are stored in your own browser (debounced,
   never on a server) and offered back after a refresh.
+- **Filled example in one click** — "See an example" loads a realistic
+  sample CV (experienced and fresher variants) that models best practices:
+  quantified achievements, full sections, 300+ words. It scores 100/A as
+  DOCX and 95/A as PDF, so newcomers see what "good" looks like before
+  typing a word.
 - **Hardened API** — request size caps, a decompression-bomb guard on
   uploads, per-IP rate limiting on heavy endpoints, strict validation,
   and production CORS fail-fast.
@@ -60,8 +66,10 @@ Browser (React)          FastAPI backend              Output
        └────────────────► Import parser / ATS scorer
 ```
 
-The backend is **stateless**: no database, no filesystem writes, nothing
-stored. Generating a CV is a pure function from JSON to file bytes.
+The backend is **stateless**: no database, no accounts, no stored CVs.
+Generating a CV is a pure function from JSON to file bytes, processed in
+memory and never saved. Uploads (import/score) are likewise parsed in
+memory and discarded; drafts stay in the browser's local storage.
 
 ## 🚀 Quick start
 
@@ -130,7 +138,7 @@ ats-cv-maker/
 | -------- | ----------------------------------- |
 | Frontend | React 18, Vite 5, TypeScript, CSS   |
 | Backend  | FastAPI, Pydantic v2, Uvicorn       |
-| Document | python-docx (DOCX), ReportLab (PDF) |
+| Document | python-docx (DOCX), ReportLab (PDF), pypdf (PDF text extraction) |
 | Tests    | pytest + httpx · Vitest + Testing Library |
 | Deploy   | Netlify (frontend), Render (backend) |
 | CI       | GitHub Actions — both suites on every push & PR |
@@ -212,7 +220,7 @@ CI runs both suites on every push to `main` and every pull request.
 | Variable       | Where                 | Purpose                                                                 |
 | -------------- | --------------------- | ----------------------------------------------------------------------- |
 | `VITE_API_URL` | `.env.local`, Netlify | Base URL of the backend. Leave empty locally to use the dev proxy.       |
-| `VITE_SITE_URL`| `.env.local`, Netlify | Public frontend URL — used at build time for canonical/og:image tags. Optional locally. |
+| `VITE_SITE_URL`| `.env.local`, Netlify | Public frontend URL — used at build time for canonical/og:image tags, robots.txt, and sitemap.xml. Optional locally (falls back to `http://localhost:5173`); set it in Netlify for production. |
 
 See `frontend/.env.example`.
 
@@ -229,7 +237,7 @@ See `frontend/.env.example`.
 | `TRUST_XFF` | `1` | Trust X-Forwarded-For for rate-limit IP (set 0 if not behind a trusted proxy) |
 | `ENVIRONMENT`        | `development`        | Informational                             |
 
-No secrets are required — the app stores nothing.
+No secrets are required — the app stores no CVs.
 
 ## ☁️ Deployment
 
@@ -241,14 +249,19 @@ No secrets are required — the app stores nothing.
    `npm run build`, publish `frontend/dist`).
 4. Set `VITE_API_URL` to your backend URL, e.g.
    `https://ats-cv-api.onrender.com` (no trailing slash).
-5. Deploy.
+5. Set `VITE_SITE_URL` to your frontend URL, e.g.
+   `https://your-site.netlify.app` (no trailing slash) — this fills the
+   canonical URL, social preview image, `robots.txt`, and `sitemap.xml`
+   at build time.
+6. Deploy.
 
 ### Backend → Render
 
 1. In Render: **New → Web Service** and pick the repository.
 2. Render detects `render.yaml`: root dir `backend`, build
    `pip install -r requirements.txt`, start
-   `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2`.
+   `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1`.
+   Python is pinned via `backend/.python-version`.
 3. Set `CORS_ORIGINS` to your Netlify origin, e.g.
    `https://your-site.netlify.app`.
 4. Deploy. Health check path: `/api/health`.
@@ -262,10 +275,15 @@ No secrets are required — the app stores nothing.
 Contributions are welcome! Start with
 [CONTRIBUTING.md](CONTRIBUTING.md) for setup, project rules (how to add a
 template, where generation logic lives), and the pre-push checklist.
-Good first issues are labeled `good first issue`.
+Good first issues are labeled `good first issue`. Ideas live in
+[docs/CONTRIBUTOR_IDEAS.md](docs/CONTRIBUTOR_IDEAS.md). Please follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 - 🐛 [Report a bug](.github/ISSUE_TEMPLATE/bug_report.yml)
 - 💡 [Suggest a feature](.github/ISSUE_TEMPLATE/feature_request.yml)
+- 💬 [GitHub Discussions](https://github.com/faysalmahmudprem/ats-cv-maker/discussions) — questions, ideas, and community conversations.
+  Maintainer note: Discussions must be enabled in GitHub repository
+  settings (Repo → Settings → General → Features); code cannot enable it.
 - 🔒 Security vulnerabilities go to **hello@faysalmahmudprem.com** — see
   [SECURITY.md](SECURITY.md). Please don't open public issues for them.
 
@@ -277,3 +295,19 @@ assistant, job-description keyword matching, more templates and languages.
 ## 📄 License
 
 Released under the [Apache License 2.0](LICENSE).
+
+## 🏷️ Maintainer note: GitHub metadata (manual setup)
+
+Repository settings cannot be changed from code — a maintainer should set
+these in the GitHub UI (Repo → Settings / About):
+
+Suggested description:
+
+> Open-source ATS-friendly CV builder with React + FastAPI, DOCX/PDF export, CV import, and ATS scoring.
+
+Suggested topics:
+
+`ats`, `cv-builder`, `cv-generator`, `resume-builder`, `resume-generator`,
+`react`, `typescript`, `fastapi`, `python`, `python-docx`, `open-source`
+
+These are suggestions only; they are not claimed to be already configured.

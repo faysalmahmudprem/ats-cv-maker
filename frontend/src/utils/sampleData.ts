@@ -30,10 +30,11 @@ export function sampleCV(profile: "experienced" | "fresher" = "experienced"): CV
     portfolio: "alexexample.dev",
   };
   cv.summary =
-    "Software engineer with experience building web applications and business software (ERP, POS, CRM).";
+    "Software engineer with 3 years of experience building web applications and business software (ERP, POS, CRM). Comfortable across the stack: React on the front, FastAPI on the back. I value clear communication and collaboration, ship features end-to-end, and care about clean, maintainable code. Recently I have been deepening my backend skills with queue-based processing and automated testing.";
   cv.skills = [
     { category: "Languages", items: ["Python", "JavaScript", "PHP"] },
     { category: "Frameworks", items: ["FastAPI", "React", "Laravel"] },
+    { category: "Tools", items: ["Git", "Docker", "AWS"] },
   ];
   cv.experience = [
     {
@@ -42,8 +43,20 @@ export function sampleCV(profile: "experienced" | "fresher" = "experienced"): CV
       location: "Dhaka",
       dates: "Jan 2024 - Present",
       bullets: [
-        "Built REST APIs serving 10k daily requests.",
-        "Led migration of legacy ERP modules to a modern stack.",
+        "Built REST APIs serving 10k daily requests and cut average response time by 40%.",
+        "Led migration of legacy ERP modules to a modern stack, now used by 200+ internal users.",
+        "Mentored two junior developers through code reviews and weekly pairing sessions.",
+      ],
+    },
+    {
+      title: "Junior Developer",
+      company: "Startup Co",
+      location: "Dhaka",
+      dates: "2022 - 2023",
+      bullets: [
+        "Developed customer dashboard features in React that lifted trial-to-paid conversion by 15%.",
+        "Reduced page load time by 30% by optimizing API queries and image handling.",
+        "Wrote automated tests covering 80%+ of new code, cutting production regressions in half.",
       ],
     },
   ];
@@ -52,7 +65,16 @@ export function sampleCV(profile: "experienced" | "fresher" = "experienced"): CV
       name: "CV Generator",
       technologies: ["Python", "python-docx"],
       description: "Generates ATS-friendly Word CVs from structured JSON.",
-      details: ["Supports Unicode text, hyperlinks and bullet formatting."],
+      details: [
+        "Supports Unicode text, hyperlinks and bullet formatting.",
+        "Used by 500+ job seekers to build interview-ready CVs.",
+      ],
+    },
+    {
+      name: "POS Lite",
+      technologies: ["Laravel", "MySQL"],
+      description: "Lightweight point-of-sale web app for small retail shops, handling daily sales, stock and receipts.",
+      details: ["Implemented sales reports that save shop owners 5+ hours every week."],
     },
   ];
   cv.education = [
@@ -61,14 +83,14 @@ export function sampleCV(profile: "experienced" | "fresher" = "experienced"): CV
       school: "Example University",
       location: "Dhaka",
       dates: "2019 - 2023",
-      details: ["CGPA 3.80/4.00"],
+      details: ["CGPA 3.80/4.00", "Relevant coursework: databases, web engineering and software design.", "Led the programming club's workshop series for two semesters."],
     },
   ];
   cv.certifications = [
     { title: "AWS Cloud Practitioner", issuer: "Amazon", date: "2024" },
   ];
   cv.languages = ["English", "Bangla"];
-  cv.additional_info = ["Open to relocation."];
+  cv.additional_info = ["Open to relocation.", "Available to start with one month's notice."];
 
   return cv;
 }

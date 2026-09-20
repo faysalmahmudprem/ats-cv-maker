@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# TODO: replace YOUR_DOMAIN with the final Netlify domain after launch.
-Sitemap: https://YOUR_DOMAIN.netlify.app/sitemap.xml
+Sitemap: __SITE_URL__/sitemap.xml

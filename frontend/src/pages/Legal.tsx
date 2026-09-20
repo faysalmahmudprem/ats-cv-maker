@@ -50,10 +50,10 @@ function PrivacyPolicy() {
     <LegalShell title="Privacy Policy" updated="September 2026">
       <h2>The short version</h2>
       <p>
-        We can't leak your CV because we never store it. Your data is sent to
-        our server once to build the document, held in memory for the moment it
-        takes to generate, and then discarded. There is no database, no account
-        system, and no analytics.
+        No accounts, no database, no stored CVs, and no analytics. Your data
+        is sent to our server only to build the document, processed in memory
+        for the moment it takes to generate, and then discarded — never
+        written to disk or any database.
       </p>
 
       <h2>What we collect</h2>
@@ -79,8 +79,8 @@ function PrivacyPolicy() {
       <ul>
         <li>No accounts or sign-ups</li>
         <li>No cookies, no analytics, no advertising, no tracking pixels</li>
-        <li>No selling or sharing of personal data — there is none to share</li>
-        <li>No third-party data processing beyond the hosting provider</li>
+        <li>No selling or sharing of personal data — CV content is processed in memory only and never stored</li>
+        <li>No third-party services receive your CV content; requests are processed by our API on its hosting provider over HTTPS</li>
       </ul>
 
       <h2>Where your data goes</h2>

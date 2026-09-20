@@ -14,7 +14,8 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     # Uvicorn binds to the host/port provided by the platform via $PORT.
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    # One worker keeps the small free-tier instance within memory limits.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION

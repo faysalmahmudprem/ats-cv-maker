@@ -65,27 +65,6 @@ import {
   type CVWarnings,
 } from "./utils/validate";
 
-/**
- * Privacy-friendly event tracking (Plausible). The global only exists once
- * the Plausible script has loaded (production + matching domain), so every
- * call is guarded — local dev, ad-blockers and pre-load races are silent
- * no-ops and never throw.
- */
-function plausible(
-  name: string,
-  props?: Record<string, string | number>,
-) {
-  const w = window as unknown as {
-    plausible?: (
-      eventName: string,
-      options?: { props?: Record<string, string | number> },
-    ) => void;
-  };
-  if (typeof w.plausible === "function") {
-    w.plausible(name, props ? { props } : undefined);
-  }
-}
-
 export default function App() {
   // Tiny hash router: "" (builder), "/privacy" or "/terms".
   const [route, setRoute] = useState("");
@@ -108,9 +87,6 @@ export default function App() {
   // Import stays collapsed until requested — typing should always be the
   // fastest path into the product; upload is for a minority of users.
   const [importOpen, setImportOpen] = useState(false);
-  useEffect(() => {
-    if (importOpen) plausible("Import opened");
-  }, [importOpen]);
 
   /** Copy a shareable link to the app, with a 2s "Link copied!" flash. */
   async function copyShareLink() {
@@ -288,7 +264,6 @@ export default function App() {
 
     setStatus("loading");
     setMessage(format === "pdf" ? "Building your PDF…" : "Building your Word file…");
-    plausible("Generate clicked", { format });
     // After 8s of silence (a cold start can run 30–50s), set expectations
     // so the wait reads as "working" instead of "broken". Cleared as soon
     // as the request settles so it never overwrites the real result.
@@ -305,7 +280,6 @@ export default function App() {
       lastDownloadRef.current = { blob, filename };
       setStatus("success");
       setMessage(`Got it — ${filename} is in your downloads folder.`);
-      plausible("Download success");
       setGenScore(null);
       setGenScorePhase("offer");
     } catch (err) {
@@ -335,7 +309,6 @@ export default function App() {
       const result = await checkScore(last.blob, { filename: last.filename });
       setGenScore(result);
       setGenScorePhase("shown");
-      plausible("Score checked", { flow: "generate" });
     } catch {
       setGenScorePhase("failed");
     }
@@ -592,7 +565,7 @@ export default function App() {
             </span>
             <span className="chip" role="listitem">
               <i className="dot ok" aria-hidden="true" />
-              Data never stored
+              No stored CVs
             </span>
           </div>
           <a className="btn btn-primary hero-cta" href="#editor">
@@ -735,8 +708,9 @@ export default function App() {
               subtitle="Check the paper, then export."
             >
               <p className="privacy">
-                We never see your CV — it's built in seconds and deleted. Your
-                draft lives in this browser.
+                Your entries are sent to the API only to build the file —
+                processed in memory and never stored. Your draft lives in
+                this browser.
               </p>
               <div className="download-row">
                 <Btn
@@ -920,9 +894,10 @@ export default function App() {
         <details>
           <summary>Do you store my data?</summary>
           <p>
-            Nope. The file is built and forgotten — nothing is saved anywhere.
-            A draft stays in this browser so a refresh doesn't eat your work;
-            "Clear and restart" wipes it.
+            No accounts, no database, no stored CVs. Your entries are sent
+            to the API only to build the file, processed in memory and never
+            saved. A draft stays in this browser so a refresh doesn't eat
+            your work; "Clear and restart" wipes it.
           </p>
         </details>
       </section>
@@ -965,7 +940,7 @@ export default function App() {
           >
             Faysal Mahmud Prem
           </a>
-          . All rights reserved.
+          {" "}· Licensed under Apache-2.0
         </span>
       </footer>
 

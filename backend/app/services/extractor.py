@@ -34,11 +34,10 @@ def _kind_hint(filename: str) -> str:
     _, _, ext = (filename or "").rpartition(".")
     return f".{ext.lower()}" if ext else "<no-extension>"
 
-try:  # PyMuPDF (imported as `pymupdf`; the legacy `fitz` alias is deprecated)
-    import pymupdf  # type: ignore
-    fitz = pymupdf  # type: ignore  # legacy alias kept for internal use
+try:  # pypdf (BSD-3-Clause) for runtime PDF text extraction.
+    from pypdf import PdfReader  # type: ignore
 except ImportError:  # pragma: no cover
-    fitz = None  # type: ignore
+    PdfReader = None  # type: ignore
 
 from docx import Document as DocxDocument
 
@@ -54,12 +53,12 @@ def _normalize(text: str) -> str:
 
 
 def _pdf_text(data: bytes) -> str:
-    if fitz is None:  # pragma: no cover
-        logger.warning("PyMuPDF not installed — PDF extraction unavailable")
+    if PdfReader is None:  # pragma: no cover
+        logger.warning("pypdf not installed — PDF extraction unavailable")
         return ""
     try:
-        with fitz.open(stream=data, filetype="pdf") as doc:
-            pages = [page.get_text("text") for page in doc]
+        reader = PdfReader(io.BytesIO(data))
+        pages = [(page.extract_text() or "") for page in reader.pages]
         return _normalize("\n".join(pages))
     except Exception:
         logger.exception("PDF text extraction failed")
