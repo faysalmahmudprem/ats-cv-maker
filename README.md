@@ -5,6 +5,8 @@
 **Build an ATS-friendly CV in 2 minutes — download it as Word or PDF.**
 Free · No signup · No paywall · No stored CVs
 
+🌐 **Live app:** `https://ats-cv-maker.netlify.app/`
+
 [![CI](https://github.com/faysalmahmudprem/ats-cv-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/faysalmahmudprem/ats-cv-maker/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
@@ -282,7 +284,7 @@ No secrets are required — the app stores no CVs.
 4. Set `VITE_API_URL` to your backend URL, e.g.
    `https://ats-cv-maker-api.onrender.com` (no trailing slash).
 5. Set `VITE_SITE_URL` to your frontend URL, e.g.
-   `https://your-site.netlify.app` (no trailing slash) — this fills the
+   `https://ats-cv-maker.netlify.app` (no trailing slash) — this fills the
    canonical URL, social preview image, `robots.txt`, and `sitemap.xml`
    at build time.
 6. Deploy.
@@ -295,7 +297,7 @@ No secrets are required — the app stores no CVs.
    `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1`.
    Python is pinned via `backend/.python-version`.
 3. Set `CORS_ORIGINS` to your Netlify origin, e.g.
-   `https://your-site.netlify.app`.
+   `https://ats-cv-maker.netlify.app` (exact match — no trailing slash).
 4. Deploy. Health check path: `/api/health`.
 
 > **Free-tier tip:** free Render instances sleep after ~15 min idle, so
@@ -303,17 +305,15 @@ No secrets are required — the app stores no CVs.
 > return `503` while the service wakes). A free cron ping to
 > `/api/health` (e.g. cron-job.org) mitigates this.
 
-### Live backend
+### Live deployment
 
-The backend is deployed on Render:
+The app is live:
 
-- App: `https://ats-cv-maker-api.onrender.com`
-- Health: `https://ats-cv-maker-api.onrender.com/api/health`
+- Frontend: `https://ats-cv-maker.netlify.app/`
+- Backend: `https://ats-cv-maker-api.onrender.com`
+- Backend health: `https://ats-cv-maker-api.onrender.com/api/health`
 - API docs: `https://ats-cv-maker-api.onrender.com/docs`
 - OpenAPI: `https://ats-cv-maker-api.onrender.com/openapi.json`
-
-Frontend deployment: pending — no production frontend URL yet, so set
-`VITE_API_URL` to the Render URL above when deploying the frontend.
 
 ### 🔧 Troubleshooting
 
@@ -367,5 +367,7 @@ Suggested topics:
 
 `ats`, `cv-builder`, `cv-generator`, `resume-builder`, `resume-generator`,
 `react`, `typescript`, `fastapi`, `python`, `python-docx`, `open-source`
+
+Suggested website: `https://ats-cv-maker.netlify.app/`
 
 These are suggestions only; they are not claimed to be already configured.
