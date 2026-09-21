@@ -47,10 +47,12 @@ changes small and reviewable.
 
 ## PDF import improvements
 
-- Structured PDF import (`backend/app/services/import_cv.py`) still uses an
-  optional PyMuPDF dependency because `pypdf` does not expose per-span font
-  sizes. Research a permissively licensed layout-aware extractor and verify
-  it against `backend/tests/test_import.py` before proposing a swap.
+- Structured PDF import (`backend/app/services/import_cv.py`) uses `pypdf`
+  with structural entry-splitting heuristics (no font-size metadata —
+  see the limitation note in that file). Improve two-column PDF reading
+  order and wrapped-line contact recovery; leave fields empty rather
+  than guessing when confidence is low. Verify against
+  `backend/tests/test_import.py` before proposing changes.
 - Improve two-column PDF reading order and wrapped-line contact recovery;
   leave fields empty rather than guessing when confidence is low.
 

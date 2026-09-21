@@ -61,12 +61,14 @@ only if you need to test canonical/robots/sitemap output.
 ## Backend development
 
 - FastAPI + Pydantic v2. Source lives in `backend/app/`.
-- PDF text extraction for ATS scoring uses `pypdf` (BSD-3-Clause).
-  Structured PDF *import* still uses an optional PyMuPDF dependency (lazy
-  import inside `backend/app/services/import_cv.py`) because `pypdf` does
-  not expose the per-span font sizes that heuristic needs. DOCX import and
-  ATS scoring work without PyMuPDF. See the follow-up note in `import_cv.py`
-  before proposing a replacement — verify against `backend/tests/test_import.py`.
+- PDF text extraction and structured PDF import both use `pypdf`
+  (BSD-3-Clause) — no PyMuPDF required to run the app. `pypdf` exposes
+  plain text without per-span font sizes, so
+  `backend/app/services/import_cv.py` splits entries with structural
+  heuristics (pipe/dash headlines, date ranges, bullet boundaries) that
+  degrade gracefully instead of failing. See the limitation note in
+  `import_cv.py` before proposing parser changes — verify against
+  `backend/tests/test_import.py`.
 - Commands (run in `backend/`):
   - `uvicorn app.main:app --reload` — dev server.
   - `python -m pytest -v` — full backend suite.

@@ -7,15 +7,21 @@ Strategy
 --------
 Parsing a CV is heuristic work. We are honest about it:
 
-1. Extract lines (python-docx paragraphs + bullet text; PyMuPDF text
-   blocks per line, top-to-bottom then left-to-right).
+1. Extract lines (python-docx paragraphs + bullet text; pypdf text
+   extraction per page, split into lines in reading order).
 2. Detect sections via a heading vocabulary (SUMMARY / EXPERIENCE /
    EDUCATION / SKILLS / PROJECTS / ... and common synonyms like "Work
    History" or "Career Objective").
-3. Split section content into entries: a new entry starts at a bold
-   line (DOCX) or a larger font line (PDF); otherwise every 2-3rd
-   structural gap. Date-like lines attach as the entry's meta.
+3. Split section content into entries using structural heuristics: pipe
+   ("Title | Company") and dash-separated headlines, short heading-like
+   lines followed by date ranges, date-bearing lines, and bullet
+   boundaries. Date-like lines attach as the entry's meta.
 4. Map bullets ("•", "-", "*" prefixed lines) to the current entry.
+
+Limitation (documented honestly): pypdf exposes plain text without
+per-span font sizes, so the old PyMuPDF font-size entry heuristic no
+longer exists. Entry splitting is purely structural and degrades
+gracefully — see _split_entries.
 
 The result feeds the same CVRequest validation as the manual form, so
 anything malformed is simply dropped — import never fabricates content.
@@ -32,26 +38,15 @@ from typing import Any, Dict, List, Optional
 
 from docx import Document as DocxDocument
 
-# Structured PDF import (per-line bold/size reconstruction) still uses
-# PyMuPDF (AGPL/commercial) because pypdf does not expose the per-span
-# font sizes this heuristic needs. The import is lazy and confined to the
-# PDF-import helpers below so the DOCX path and the scorer path never
-# require it. Dev-only thumbnail rendering also uses it optionally; the
-# production scorer/extractor path uses pypdf (BSD-3-Clause).
-# Follow-up: replace with a permissively licensed layout-aware extractor
-# when one is verified against backend/tests/test_import.py.
+# Production PDF import uses pypdf (BSD-3-Clause) only. pypdf exposes
+# plain text without per-span font sizes, so there is deliberately no
+# font-size heuristic here — entry splitting is structural (see
+# _split_entries). Nothing in this module may import PyMuPDF/fitz.
 
-
-def _require_pymupdf():
-    """Import PyMuPDF lazily; raise a clear error when it is absent."""
-    try:
-        import pymupdf  # type: ignore
-    except ImportError as exc:
-        raise RuntimeError(
-            "Structured PDF import needs the optional PyMuPDF dependency "
-            "(pip install pymupdf). DOCX import and ATS scoring work without it."
-        ) from exc
-    return pymupdf
+try:  # pypdf for runtime PDF text extraction + page counting.
+    from pypdf import PdfReader  # type: ignore
+except ImportError:  # pragma: no cover
+    PdfReader = None  # type: ignore
 
 
 # DOCX mime we generate ourselves; be liberal in what we accept.
@@ -198,56 +193,56 @@ def _docx_lines(data: bytes) -> List[ParsedLine]:
     return lines
 
 
-def _pdf_lines(data: bytes) -> List[ParsedLine]:
-    pymupdf = _require_pymupdf()
-    lines: List[ParsedLine] = []
-    with pymupdf.open(stream=data, filetype="pdf") as doc:
-        for page in doc:
-            # Blocks preserve rough reading order; sort within a block
-            # top-to-bottom, left-to-right.
-            for block in page.get_text("blocks"):
-                x0, y0, x1, y1, text = block[0], block[1], block[2], block[3], block[4]
-                spans = []  # font size per line comes from "dict" extract below
-                _ = spans
-                for raw_line in text.splitlines():
-                    t = raw_line.strip()
-                    if not t:
-                        continue
-                    lines.append(ParsedLine(text=t, is_bullet=bool(BULLET_PREFIX_RE.match(t))))
-    return lines
+def _pdf_lines(data: bytes) -> tuple[List[ParsedLine], int]:
+    """Extract lines + page count from a PDF with pypdf.
 
-
-def _pdf_lines_sized(data: bytes) -> List[ParsedLine]:
-    """PDF extraction with font sizes (for entry splitting)."""
-    pymupdf = _require_pymupdf()
+    Raises ValueError for corrupt/unreadable files. Returns ([], 0) only
+    when the file parsed but yielded no text (scan/image-only) — the
+    caller turns that into the honest "No text" error.
+    """
+    if PdfReader is None:  # pragma: no cover
+        raise ValueError("PDF support is not available on the server.")
+    try:
+        reader = PdfReader(io.BytesIO(data))
+        if getattr(reader, "is_encrypted", False):
+            try:
+                reader.decrypt("")
+            except Exception:
+                raise ValueError("Could not read this PDF. Is it a valid file?")
+        page_count = max(1, len(reader.pages))
+        raw_pages: List[str] = []
+        for page in reader.pages:
+            try:
+                text = page.extract_text(extraction_mode="layout")
+            except Exception:
+                # Blank pages (no /Contents) and older pypdf versions
+                # fail layout mode — plain extraction degrades gracefully.
+                try:
+                    text = page.extract_text()
+                except Exception:
+                    text = ""
+            raw_pages.append(text or "")
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Could not read this PDF. Is it a valid file?") from exc
     lines: List[ParsedLine] = []
-    with pymupdf.open(stream=data, filetype="pdf") as doc:
-        for page in doc:
-            d = page.get_text("dict")
-            for block in d.get("blocks", []):
-                if block.get("type") != 0:
-                    continue
-                for para in block.get("lines", []):
-                    text_parts = []
-                    max_size = 0.0
-                    bold = False
-                    for span in para.get("spans", []):
-                        text_parts.append(span.get("text", ""))
-                        max_size = max(max_size, float(span.get("size", 0)))
-                        flags = int(span.get("flags", 0))
-                        bold = bold or bool(flags & 2**4)  # bold bit
-                    t = "".join(text_parts).strip()
-                    if not t:
-                        continue
-                    lines.append(
-                        ParsedLine(
-                            text=t,
-                            bold=bold,
-                            font_size=round(max_size, 1),
-                            is_bullet=bool(BULLET_PREFIX_RE.match(t)),
-                        )
-                    )
-    return lines
+    for raw in raw_pages:
+        for raw_line in raw.splitlines():
+            # ReportLab bullet paragraphs extract with a DEL (\\x7f)
+            # glyph; other producers use •/‣/·. Normalise to "• " so
+            # bullet detection below sees them all.
+            t = raw_line.strip().lstrip("\x7f\u2022\u2023\u25aa\u25cf\u00b7").strip()
+            if not t:
+                continue
+            was_bullet = bool(BULLET_PREFIX_RE.match(raw_line.strip())) or (
+                raw_line.strip()[:1] in ("\x7f", "•", "‣", "▪", "·")
+            )
+            # Lines that lost their marker entirely (e.g. "| Built ...")
+            # still read as content; only the marker-prefixed ones count
+            # as bullets for the scorer warning parity.
+            lines.append(ParsedLine(text=t, is_bullet=was_bullet))
+    return lines, page_count
 
 
 # ---------------------------------------------------------------------------
@@ -305,27 +300,104 @@ def _looks_like_date_meta(text: str) -> bool:
     return bool(DATE_RE.search(text) or YEAR_RANGE_RE.search(text)) and len(text) <= 80
 
 
+def _looks_like_entry_head(text: str, next_text: str = "") -> bool:
+    """Heuristic: does this line start a new CV entry?
+
+    pypdf provides no font-size metadata, so this is purely structural:
+    - "Title | Company" / "Degree | School" pipe headlines (our own
+      generator format and a common CV convention);
+    - dash-separated "Title – Company" headlines;
+    - short title-like lines immediately followed by a date-range line;
+    - short lines carrying their own date range plus a title remnant.
+
+    Pure date lines are meta, never heads. Sentences are never heads.
+    """
+    t = BULLET_PREFIX_RE.sub("", text).strip()
+    if not t or len(t) > 120:
+        return False
+    if "|" in t:
+        # "Dhaka | Jan 2024 - Present" is a meta line (one side is a
+        # date), never a head; "Title | Company" (no date) is a head.
+        parts = [p.strip() for p in t.split("|") if p.strip()]
+        if any(_looks_like_date_meta(p) for p in parts):
+            return False
+        if len(parts) >= 2 and all(len(p) <= 60 for p in parts):
+            return True
+        return False
+    if _looks_like_date_meta(t):
+        return False
+    words = t.split()
+    if t.endswith(".") and len(words) > 8:
+        return False
+    for sep in (" – ", " — ", " - ", " | "):
+        if sep in t:
+            sides = [s.strip() for s in t.split(sep) if s.strip()]
+            if len(sides) == 2 and all(1 <= len(s) <= 60 for s in sides):
+                # Avoid splitting plain sentences that contain a dash.
+                if len(words) <= 10 and t[0].isupper():
+                    return True
+    if (
+        len(words) <= 8
+        and len(t) <= 70
+        and t[0].isupper()
+        and not t.endswith(".")
+    ):
+        nxt = BULLET_PREFIX_RE.sub("", next_text).strip()
+        if nxt and _looks_like_date_meta(nxt):
+            return True
+        remainder = DATE_RE.sub("", t).strip(" –—-|,()")
+        if DATE_RE.search(t) or YEAR_RANGE_RE.search(t):
+            if 1 <= len(remainder.split()) <= 8 and len(remainder) >= 3:
+                return True
+    return False
+
+
 def _split_entries(
     section_lines: List[ParsedLine], doc_kind: str
 ) -> List[List[ParsedLine]]:
     """Group section lines into entries.
 
-    Strong signals: bold lines and larger-font lines (DOCX style runs,
-    PDF font sizes) start a new entry. Weak fallback: a date-bearing line
-    after 2+ content lines also starts one.
+    DOCX lines carry bold/size metadata from python-docx, so bold or
+    larger-font lines still start a new entry there. PDF lines from pypdf
+    carry no font metadata (bold=False, font_size=0.0), so PDF splitting
+    uses structural signals instead: pipe/dash headlines, short
+    heading-like lines followed by dates, and date-bearing lines after
+    established content. Bullets never start an entry in either path.
     """
-    sizes = [l.font_size for l in section_lines if l.font_size]
-    body_size = sorted(sizes)[len(sizes) // 2] if sizes else 0.0
-
     entries: List[List[ParsedLine]] = []
     current: List[ParsedLine] = []
     content_since_start = 0
+
+    if doc_kind == "pdf":
+        for i, line in enumerate(section_lines):
+            starts_entry = False
+            if not line.is_bullet and content_since_start > 0:
+                nxt = section_lines[i + 1].text if i + 1 < len(section_lines) else ""
+                if _looks_like_entry_head(line.text, nxt):
+                    starts_entry = True
+                elif _looks_like_date_meta(line.text) and content_since_start >= 3:
+                    # A second date-range line deep inside an entry usually
+                    # belongs to the next entry (headline missed).
+                    starts_entry = True
+            if starts_entry and current:
+                entries.append(current)
+                current = []
+                content_since_start = 0
+            current.append(line)
+            if not line.is_bullet:
+                content_since_start += 1
+        if current:
+            entries.append(current)
+        return entries
+
+    sizes = [l.font_size for l in section_lines if l.font_size]
+    body_size = sorted(sizes)[len(sizes) // 2] if sizes else 0.0
 
     for line in section_lines:
         starts_entry = False
         if line.is_bullet:
             starts_entry = False
-        elif line.bold or (doc_kind == "pdf" and body_size and line.font_size >= body_size + 0.9):
+        elif line.bold or (body_size and line.font_size >= body_size + 0.9):
             starts_entry = content_since_start > 0
         elif _looks_like_date_meta(line.text) and content_since_start >= 2:
             starts_entry = True
@@ -581,11 +653,9 @@ def parse_cv_file(
     """
     if doc_kind == "pdf":
         try:
-            pymupdf = _require_pymupdf()
-        except RuntimeError:
-            raise ValueError("PDF support is not available on the server.")
-        try:
-            lines = _pdf_lines_sized(data)
+            lines, page_count = _pdf_lines(data)
+        except ValueError:
+            raise
         except Exception as exc:
             raise ValueError("Could not read this PDF. Is it a valid file?") from exc
         if not lines:
@@ -593,7 +663,6 @@ def parse_cv_file(
                 "No text found in this PDF — it may be a scan or contain only images. "
                 "Try a text-based PDF or the DOCX version."
             )
-        page_count = _pdf_page_count(data)
     elif doc_kind == "docx":
         try:
             lines = _docx_lines(data)
@@ -665,21 +734,10 @@ def _split_sections_into_result(lines: List[ParsedLine], result: ImportResult) -
 
 
 def _pdf_page_count(data: bytes) -> int:
-    try:
-        from pypdf import PdfReader as _PdfReader  # type: ignore
-    except ImportError:
-        _PdfReader = None  # type: ignore
-    if _PdfReader is not None:
-        try:
-            return max(1, len(_PdfReader(io.BytesIO(data)).pages))
-        except Exception:
-            return 1
-    try:
-        pymupdf = _require_pymupdf()
-    except RuntimeError:
+    """Page count via pypdf (BSD-3-Clause). Never raises."""
+    if PdfReader is None:  # pragma: no cover
         return 1
     try:
-        with pymupdf.open(stream=data, filetype="pdf") as doc:
-            return max(1, doc.page_count)
+        return max(1, len(PdfReader(io.BytesIO(data)).pages))
     except Exception:
         return 1

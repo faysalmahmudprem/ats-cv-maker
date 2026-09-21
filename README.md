@@ -138,7 +138,7 @@ ats-cv-maker/
 | -------- | ----------------------------------- |
 | Frontend | React 18, Vite 5, TypeScript, CSS   |
 | Backend  | FastAPI, Pydantic v2, Uvicorn       |
-| Document | python-docx (DOCX), ReportLab (PDF), pypdf (PDF text extraction) |
+| Document | python-docx (DOCX), ReportLab (PDF), pypdf (PDF text extraction & import) |
 | Tests    | pytest + httpx · Vitest + Testing Library |
 | Deploy   | Netlify (frontend), Render (backend) |
 | CI       | GitHub Actions — both suites on every push & PR |

@@ -203,3 +203,148 @@ def test_api_import_rejects_decompression_bomb(client):
     )
 
     assert res.status_code == 413
+
+
+# ---------------------------------------------------------------------------
+# pypdf-based PDF fixture tests (no PyMuPDF anywhere in this suite)
+# ---------------------------------------------------------------------------
+
+
+def _canvas_pdf(lines_per_page) -> bytes:
+    """Build a text PDF with reportlab canvas (BSD-licensed prod dep).
+
+    `lines_per_page`: list of pages, each a list of text lines.
+    """
+    from reportlab.pdfgen.canvas import Canvas
+
+    buf = io.BytesIO()
+    c = Canvas(buf)
+    for page in lines_per_page:
+        y = 800
+        for line in page:
+            c.drawString(50, y, line)
+            y -= 15
+        c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+SIMPLE_CV_PAGES = [
+    [
+        "Alex Example",
+        "Software Engineer",
+        "alex@example.com | +1 555-0100",
+        "EXPERIENCE",
+        "Software Engineer | Example Corp",
+        "Jan 2020 - Present",
+        "- Built public APIs.",
+        "* Cut latency 40%.",
+        "EDUCATION",
+        "B.Sc. CS | Example U",
+        "2015 - 2019",
+        "SKILLS",
+        "Languages: Python, Go",
+        "PROJECTS",
+        "Demo App | Python",
+        "A demo app.",
+        "- Shipped v1.",
+    ]
+]
+
+
+def test_pdf_simple_text_sections():
+    result = parse_cv_file(_canvas_pdf(SIMPLE_CV_PAGES), "pdf", "simple.pdf")
+    cv = result["cv"]
+    assert cv["name"] == "Alex Example"
+    assert cv["contact"]["email"] == "alex@example.com"
+    assert "experience" in result["meta"]["sections_found"]
+    assert "education" in result["meta"]["sections_found"]
+    assert "skills" in result["meta"]["sections_found"]
+    assert "projects" in result["meta"]["sections_found"]
+    assert result["meta"]["pages"] == 1
+
+
+def test_pdf_contact_extraction():
+    result = parse_cv_file(_canvas_pdf(SIMPLE_CV_PAGES), "pdf", "c.pdf")
+    contact = result["cv"]["contact"]
+    assert contact["email"] == "alex@example.com"
+    assert contact["phone"] == "+1 555-0100"
+
+
+def test_pdf_experience_entries_and_bullets():
+    result = parse_cv_file(_canvas_pdf(SIMPLE_CV_PAGES), "pdf", "e.pdf")
+    exp = result["cv"]["experience"]
+    assert len(exp) == 1
+    assert exp[0]["title"] == "Software Engineer"
+    assert exp[0]["company"] == "Example Corp"
+    assert exp[0]["dates"] == "Jan 2020 - Present"
+    assert len(exp[0]["bullets"]) == 2
+
+
+def test_pdf_education_skills_projects():
+    result = parse_cv_file(_canvas_pdf(SIMPLE_CV_PAGES), "pdf", "s.pdf")
+    cv = result["cv"]
+    assert cv["education"][0]["degree"] == "B.Sc. CS"
+    assert cv["education"][0]["school"] == "Example U"
+    assert cv["skills"][0]["category"] == "Languages"
+    assert "Python" in cv["skills"][0]["items"]
+    assert cv["projects"][0]["name"] == "Demo App"
+    assert "Python" in cv["projects"][0]["technologies"]
+
+
+def test_pdf_multi_page_merges_and_counts():
+    data = _canvas_pdf(
+        [
+            ["Alex Example", "EXPERIENCE", "Software Engineer | Example Corp", "Jan 2020 - Present"],
+            ["- Built APIs on page two.", "EDUCATION", "B.Sc. CS | Example U", "2015 - 2019"],
+        ]
+    )
+    result = parse_cv_file(data, "pdf", "multi.pdf")
+    assert result["meta"]["pages"] == 2
+    assert result["cv"]["experience"][0]["bullets"] == ["Built APIs on page two."]
+    assert result["cv"]["education"][0]["degree"] == "B.Sc. CS"
+
+
+def test_pdf_unicode_text():
+    data = _canvas_pdf([["Jose Garcia", "Software Engineer", "SKILLS", "Languages: Python"]])
+    result = parse_cv_file(data, "pdf", "u.pdf")
+    assert result["cv"]["name"] == "Jose Garcia"
+
+
+def test_pdf_unicode_accents():
+    # Latin-1 accents survive Helvetica/WinAnsi encoding end to end.
+    data = _canvas_pdf([["Renée Müller", "Software Engineer", "SKILLS", "Languages: Python"]])
+    result = parse_cv_file(data, "pdf", "acc.pdf")
+    assert result["cv"]["name"] == "Renée Müller"
+
+
+def test_pdf_malformed_raises_valueerror():
+    with pytest.raises(ValueError) as exc:
+        parse_cv_file(b"%PDF-1.4 not really a pdf \x00\x01\x02", "pdf", "bad.pdf")
+    assert "Could not read" in str(exc.value)
+
+
+def test_pdf_empty_bytes_raise_valueerror():
+    with pytest.raises(ValueError):
+        parse_cv_file(b"", "pdf", "empty.pdf")
+
+
+def test_api_pdf_import_roundtrip(client):
+    data = _canvas_pdf(SIMPLE_CV_PAGES)
+    res = client.post(
+        "/api/import-cv",
+        files={"file": ("cv.pdf", io.BytesIO(data), "application/pdf")},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["cv"]["name"] == "Alex Example"
+    assert body["meta"]["kind"] == "pdf"
+    assert body["meta"]["pages"] == 1
+
+
+def test_api_pdf_rejects_malformed(client):
+    res = client.post(
+        "/api/import-cv",
+        files={"file": ("bad.pdf", io.BytesIO(b"garbage bytes"), "application/pdf")},
+    )
+    assert res.status_code == 422
