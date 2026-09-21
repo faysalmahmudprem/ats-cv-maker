@@ -708,7 +708,7 @@ export default function App() {
               subtitle="Check the paper, then export."
             >
               <p className="privacy">
-                Your entries are sent to the API only to build the file —
+                Your entries are sent to the API only when you generate a file —
                 processed in memory and never stored. Your draft lives in
                 this browser.
               </p>
@@ -895,8 +895,9 @@ export default function App() {
           <summary>Do you store my data?</summary>
           <p>
             No accounts, no database, no stored CVs. Your entries are sent
-            to the API only to build the file, processed in memory and never
-            saved. A draft stays in this browser so a refresh doesn't eat
+            to the API over HTTPS only to generate a file — or, when you use
+            them, to import or score an uploaded CV — processed in memory and
+            never saved. A draft stays in this browser so a refresh doesn't eat
             your work; "Clear and restart" wipes it.
           </p>
         </details>

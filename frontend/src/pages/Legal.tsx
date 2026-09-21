@@ -5,7 +5,8 @@ import { useEffect } from "react";
  * No router dependency — the marketing surface is a single screen.
  *
  * The copy describes exactly what the code does (verified):
- * - CV data is sent once to generate the file, never persisted server-side.
+ * - CV data is sent over HTTPS only when needed for generation, import,
+ *   or ATS scoring — processed in memory, never persisted server-side.
  * - A draft autosaves to the user's own browser localStorage only.
  * - No accounts, no tracking, no analytics, no cookies.
  */
@@ -51,16 +52,18 @@ function PrivacyPolicy() {
       <h2>The short version</h2>
       <p>
         No accounts, no database, no stored CVs, and no analytics. Your data
-        is sent to our server only to build the document, processed in memory
-        for the moment it takes to generate, and then discarded — never
-        written to disk or any database.
+        is sent to our server over HTTPS only when needed — to generate a
+        file, import an existing CV, or score one — processed in memory for
+        the moment it takes, and then discarded — never written to disk or
+        any database.
       </p>
 
       <h2>What we collect</h2>
       <p>
-        <strong>CV content you type:</strong> sent once per download to the
-        document-generation endpoint, used only to build your file, and never
-        written to disk or any database.
+        <strong>CV content you type or upload:</strong> sent to the
+        document-generation, import, or scoring endpoint only when you use
+        that feature, used only for that request, and never written to disk
+        or any database.
       </p>
       <p>
         <strong>Your draft copy:</strong> while you edit, a copy of your entries
@@ -85,9 +88,11 @@ function PrivacyPolicy() {
 
       <h2>Where your data goes</h2>
       <p>
-        The generation request travels over HTTPS from your browser to our API
-        (hosted on a commercial cloud provider) and back. The document is built
-        in the server's memory and streamed back to you as a download.
+        The generation, import, or scoring request travels over HTTPS from
+        your browser to our API (hosted on a commercial cloud provider) and
+        back. A generated document is built in the server's memory and
+        streamed back to you as a download; an import or score response
+        returns parsed data, which is then discarded server-side.
       </p>
 
       <h2>Your choices and rights</h2>
@@ -145,7 +150,8 @@ function TermsOfService() {
       <h2>The service</h2>
       <p>
         This is a free, browser-based CV builder. It converts the information
-        you enter into a downloadable Word (<code>.docx</code>) document. No
+        you enter into a downloadable Word (<code>.docx</code>) or PDF
+        document, and can parse or score a CV file you upload. No
         account is required, and nothing you enter is stored on our servers.
       </p>
 

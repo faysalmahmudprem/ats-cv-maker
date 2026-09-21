@@ -31,7 +31,7 @@ changes small and reviewable.
 
 ## Frontend tests
 
-- Add Vitest + Testing Library coverage for `ScoreChecker`, `ImportCV`,
+- Extend Vitest + Testing Library coverage for `ScoreChecker`, `ImportCV`,
   and draft restore (`utils/storage`) edge cases.
 - Test the mobile tab switch and the keyboard-aware fixed-bar hiding.
 - Keep tests hermetic: mock `services/api` network calls.
@@ -53,8 +53,6 @@ changes small and reviewable.
   order and wrapped-line contact recovery; leave fields empty rather
   than guessing when confidence is low. Verify against
   `backend/tests/test_import.py` before proposing changes.
-- Improve two-column PDF reading order and wrapped-line contact recovery;
-  leave fields empty rather than guessing when confidence is low.
 
 ## ATS scoring improvements
 

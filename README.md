@@ -16,9 +16,10 @@ Free · No signup · No paywall · No stored CVs
 
 Fill in a structured form, watch a live A4 preview update as you type, and
 download a clean `.docx` or PDF that applicant tracking systems (ATS) can
-actually read. No accounts, no database, no stored CVs: your entries are
-sent to the API only to build the file, processed in memory, and never
-saved. Drafts stay in your own browser.
+actually read. No accounts, no database, no stored CVs: CV data is sent
+over HTTPS to the API only when needed — to generate a file, import an
+existing CV, or score one — processed in memory, and never intentionally
+persisted. Drafts stay in your own browser.
 
 ## ✨ Features
 
@@ -56,14 +57,17 @@ saved. Drafts stay in your own browser.
 ## ⚙️ How it works
 
 ```
-Browser (React)          FastAPI backend              Output
-┌──────────────┐  JSON   ┌────────────────────┐
-│  Form editor │ ──────► │ Validate (Pydantic)│
-│  + preview   │         │ Build layout       │──► python-docx  → .docx
-└──────────────┘         │ (shared by both    │──► ReportLab    → PDF
-       ▲                 │  output formats)   │
-       │  upload .docx   └────────────────────┘
-       └────────────────► Import parser / ATS scorer
+Browser (React)               FastAPI backend               Output
+┌──────────────┐  JSON/HTTPS  ┌────────────────────┐
+│  Form editor │ ───────────► │ Validate (Pydantic)│
+│  + preview   │              │ Build layout       │──► python-docx  → .docx
+└──────────────┘              │ (shared by both    │──► ReportLab    → PDF
+                              │  output formats)   │
+Uploads (import/score):       └────────────────────┘
+┌──────────────┐  file/HTTPS  ┌────────────────────┐
+│  Existing CV  │ ───────────► │ In-memory parse /  │──► JSON result
+│  (.docx/.pdf)│              │ ATS scoring        │    (never stored)
+└──────────────┘              └────────────────────┘
 ```
 
 The backend is **stateless**: no database, no accounts, no stored CVs.
@@ -123,8 +127,9 @@ ats-cv-maker/
 │   │   ├── schemas/           # Pydantic request models
 │   │   ├── services/          # generator, PDF, import, scorer, layout
 │   │   ├── templates.py       # template styles (add yours here)
+│   │   ├── profiles.py        # experienced / fresher section order
 │   │   └── main.py            # FastAPI app
-│   ├── tests/                 # 115 pytest tests
+│   ├── tests/                 # 126 pytest tests
 │   └── requirements.txt
 ├── .github/                   # CI workflow, issue & PR templates
 ├── netlify.toml               # Netlify build + SPA config
@@ -152,6 +157,25 @@ ats-cv-maker/
 | POST   | `/api/generate-cv`    | Generate a CV file (`.docx` or PDF) from JSON  |
 | POST   | `/api/import-cv`      | Parse an uploaded DOCX/PDF into editor data    |
 | POST   | `/api/score-cv`       | Score an uploaded CV for ATS readiness (0–100) |
+
+Upload and payload notes (verified against `backend/app/api/routes.py`
+and `backend/app/config.py`):
+
+- `POST /api/generate-cv` takes a JSON CV body (`name` required; all
+  other fields optional; `template` defaults to `classic`, `profile` to
+  `experienced`, `format` to `docx` or `pdf`). JSON bodies over
+  `MAX_REQUEST_BYTES` (default 1 MB) are rejected with `413`; `422` on
+  validation errors.
+- `POST /api/import-cv` and `POST /api/score-cv` take one multipart
+  `file` (`.pdf` or `.docx`, max `UPLOAD_MAX_BYTES`, default 5 MB —
+  larger yields `413`). Unsupported types yield `415` (import) / `400`
+  (score); empty or unreadable files yield `422` (import) / `500`
+  (score). A text-less PDF (scan) imports as `422` with an honest
+  "No text" message.
+- `POST /api/import-cv` returns `{ cv, warnings, meta }`, where `meta`
+  carries `kind`, `filename`, `pages`, `words`, and `sections_found`.
+- `POST /api/score-cv` returns `{ score, grade, summary, categories,
+  issues, word_count }`.
 
 <details>
 <summary><strong>Example: generate a CV (click to expand)</strong></summary>
@@ -197,7 +221,7 @@ list. Uploads are limited to 5 MB and parsed entirely in memory.
 ## 🧪 Testing
 
 ```bash
-# Backend — 115 tests (generator, API, templates, profiles, PDF,
+# Backend — 126 tests (generator, API, templates, profiles, PDF,
 # import, scoring, rate limiting, upload safety, security regressions)
 cd backend
 pip install -r requirements.txt
@@ -224,6 +248,9 @@ CI runs both suites on every push to `main` and every pull request.
 
 See `frontend/.env.example`.
 
+> `VITE_*` values are baked into the frontend bundle at build time —
+> never put secrets in them.
+
 ### Backend
 
 | Variable             | Default (local)      | Purpose                                   |
@@ -239,6 +266,11 @@ See `frontend/.env.example`.
 
 No secrets are required — the app stores no CVs.
 
+> Local vs production: the defaults above are for local development.
+> In production (`ENVIRONMENT=production`) the backend refuses to start
+> unless `CORS_ORIGINS` is explicitly set to the deployed frontend
+> origin(s).
+
 ## ☁️ Deployment
 
 ### Frontend → Netlify
@@ -246,9 +278,9 @@ No secrets are required — the app stores no CVs.
 1. Push the repository to GitHub.
 2. In Netlify: **Add new site → Import an existing project** and pick the repo.
 3. Netlify reads `netlify.toml` automatically (base `frontend`, build
-   `npm run build`, publish `frontend/dist`).
+   `npm run build`, publish `dist` — relative to the `frontend/` base).
 4. Set `VITE_API_URL` to your backend URL, e.g.
-   `https://ats-cv-api.onrender.com` (no trailing slash).
+   `https://ats-cv-maker-api.onrender.com` (no trailing slash).
 5. Set `VITE_SITE_URL` to your frontend URL, e.g.
    `https://your-site.netlify.app` (no trailing slash) — this fills the
    canonical URL, social preview image, `robots.txt`, and `sitemap.xml`
@@ -267,8 +299,34 @@ No secrets are required — the app stores no CVs.
 4. Deploy. Health check path: `/api/health`.
 
 > **Free-tier tip:** free Render instances sleep after ~15 min idle, so
-> the first download can take ~30–60 s. A free cron ping to
+> the first download can take ~30–60 s (the first `/api/health` call may
+> return `503` while the service wakes). A free cron ping to
 > `/api/health` (e.g. cron-job.org) mitigates this.
+
+### Live backend
+
+The backend is deployed on Render:
+
+- App: `https://ats-cv-maker-api.onrender.com`
+- Health: `https://ats-cv-maker-api.onrender.com/api/health`
+- API docs: `https://ats-cv-maker-api.onrender.com/docs`
+- OpenAPI: `https://ats-cv-maker-api.onrender.com/openapi.json`
+
+Frontend deployment: pending — no production frontend URL yet, so set
+`VITE_API_URL` to the Render URL above when deploying the frontend.
+
+### 🔧 Troubleshooting
+
+- **Backend slow or `503` on first request:** free Render instances sleep
+  when idle; wait ~30–60 s and retry `/api/health`.
+- **CORS errors in the browser:** the deployed frontend origin must be in
+  the backend's `CORS_ORIGINS`; production refuses to start without it.
+- **Frontend can't reach the API:** check `VITE_API_URL` (no trailing
+  slash) — it is baked in at build time, so changing it requires a
+  rebuild/redeploy of the frontend.
+- **Netlify build failure:** ensure base is `frontend`, build command is
+  `npm run build`, and both `VITE_API_URL` and `VITE_SITE_URL` are set in
+  the Netlify UI.
 
 ## 🤝 Contributing
 

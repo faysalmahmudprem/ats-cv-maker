@@ -33,8 +33,11 @@ Questions, ideas, design discussions, and announcements belong in
 git clone https://github.com/faysalmahmudprem/ats-cv-maker
 cd ats-cv-maker
 
-# Backend (Python 3.11+, pinned via backend/.python-version)
+# Backend (Python 3.11+ locally; Render deploys the 3.13.1 pin in
+# backend/.python-version)
 cd backend
+python -m venv .venv          # optional but recommended
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 
@@ -60,8 +63,7 @@ only if you need to test canonical/robots/sitemap output.
 
 ## Backend development
 
-- FastAPI + Pydantic v2. Source lives in `backend/app/`.
-- PDF text extraction and structured PDF import both use `pypdf`
+- FastAPI + Pydantic v2. Source lives in `backend/app/`.- PDF text extraction and structured PDF import both use `pypdf`
   (BSD-3-Clause) — no PyMuPDF required to run the app. `pypdf` exposes
   plain text without per-span font sizes, so
   `backend/app/services/import_cv.py` splits entries with structural
@@ -72,6 +74,23 @@ only if you need to test canonical/robots/sitemap output.
 - Commands (run in `backend/`):
   - `uvicorn app.main:app --reload` — dev server.
   - `python -m pytest -v` — full backend suite.
+
+## Where things live
+
+- UI: `frontend/src/components/`, `frontend/src/App.tsx`, styles in
+  `frontend/src/styles.css`.
+- API client (only place that calls the backend):
+  `frontend/src/services/api.ts` (+ `importApi.ts` for CV import).
+- Request validation: `backend/app/schemas/cv.py` (`CVRequest`).
+- File generation: `backend/app/services/generator.py` (DOCX),
+  `backend/app/services/pdf.py` (PDF), shared layout in
+  `backend/app/services/layout.py`.
+- CV import: `backend/app/services/import_cv.py` (pypdf heuristics).
+- ATS scoring: `backend/app/services/scorer.py` (+ plain-text
+  extraction in `backend/app/services/extractor.py`).
+- Templates/profiles: `backend/app/templates.py`,
+  `backend/app/profiles.py` (mirror template keys in
+  `frontend/src/data/templates.ts`).
 
 ## Test commands
 
