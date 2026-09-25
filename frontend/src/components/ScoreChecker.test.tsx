@@ -63,10 +63,25 @@ describe("ScoreChecker", () => {
     expect(screen.getByRole("button", { name: "Upload .docx / .pdf" })).toBeInTheDocument();
   });
 
+  it("job-match field: label is associated and stacked above a full-width textarea", () => {
+    render(<ScoreChecker />);
+    const label = screen.getByText(
+      "Paste a job description for a job-match score (optional)",
+    );
+    expect(label.tagName).toBe("LABEL");
+    const ta = screen.getByPlaceholderText(/Paste the job posting here/);
+    expect(ta.tagName).toBe("TEXTAREA");
+    expect(label.getAttribute("for")).toBe(ta.id);
+    // Structural guard against the squeezed-column regression: the pair
+    // must live in a block-level field wrapper, not as bare inline siblings.
+    expect(ta.closest(".score-jd-field")).not.toBeNull();
+    expect(label.closest(".score-jd-field")).toBe(ta.closest(".score-jd-field"));
+  });
+
   it("picking a file scores it immediately and shows the shared ScoreCard", async () => {
     mockedCheckScore.mockResolvedValue(scoreResult());
     await pickFile();
-    expect(await screen.findByText(/ATS score: 67\/100/)).toBeInTheDocument();
+    expect(await screen.findByText(/ATS readiness: 67\/100/)).toBeInTheDocument();
     expect(mockedCheckScore).toHaveBeenCalledTimes(1);
     expect(mockedCheckScore.mock.calls[0][0]).toBeInstanceOf(File);
     expect(
@@ -77,7 +92,7 @@ describe("ScoreChecker", () => {
   it("'Build your CV' only scrolls to the editor — never a state side effect", async () => {
     mockedCheckScore.mockResolvedValue(scoreResult());
     const user = await pickFile();
-    await screen.findByText(/ATS score: 67\/100/);
+    await screen.findByText(/ATS readiness: 67\/100/);
     await user.click(screen.getByRole("button", { name: "Build your CV with these fixes →" }));
     expect(mockedScroll).toHaveBeenCalledWith(SECTION_IDS.personal);
   });
@@ -85,7 +100,7 @@ describe("ScoreChecker", () => {
   it("'Check another CV' returns to the idle dropzone", async () => {
     mockedCheckScore.mockResolvedValue(scoreResult());
     const user = await pickFile();
-    await screen.findByText(/ATS score: 67\/100/);
+    await screen.findByText(/ATS readiness: 67\/100/);
     await user.click(screen.getByRole("button", { name: "Check another CV" }));
     expect(screen.getByText("Score a CV you already have")).toBeInTheDocument();
   });

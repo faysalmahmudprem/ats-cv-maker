@@ -24,6 +24,7 @@ export default function ScoreChecker() {
   const [score, setScore] = useState<ScoreResult | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   function pickFile(picked: File | undefined) {
@@ -46,7 +47,7 @@ export default function ScoreChecker() {
     setPhase("scoring");
     setErrorMessage("");
     try {
-      setScore(await checkScore(chosen));
+      setScore(await checkScore(chosen, { jobDescription }));
       setPhase("scored");
     } catch {
       setPhase("error");
@@ -61,6 +62,7 @@ export default function ScoreChecker() {
     setFile(null);
     setScore(null);
     setErrorMessage("");
+    setJobDescription("");
   }
 
   // ---------------------------------------------------------------------
@@ -167,6 +169,19 @@ export default function ScoreChecker() {
         <span className="score-drop-hint">
           PDF or Word · up to 5 MB · click to browse or drop a file
         </span>
+      </div>
+      <div className="score-jd-field">
+        <label className="inline-label" htmlFor="score-jd">
+          Paste a job description for a job-match score (optional)
+        </label>
+        <textarea
+          id="score-jd"
+          className="score-jd"
+          rows={4}
+          placeholder="Paste the job posting here to also get a 0–100 keyword match…"
+          value={jobDescription}
+          onChange={(e) => setJobDescription(e.target.value)}
+        />
       </div>
       {scoring ? (
         <span className="score-scanning" role="status">

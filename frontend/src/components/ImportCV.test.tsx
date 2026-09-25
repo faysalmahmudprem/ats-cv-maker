@@ -90,7 +90,7 @@ describe("ImportCV state machine", () => {
     expect(screen.getByText("Faysal_CV.pdf")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import and start editing" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Check ATS score first →" }),
+      screen.getByRole("button", { name: "Check ATS readiness first →" }),
     ).toBeInTheDocument();
   });
 
@@ -125,8 +125,8 @@ describe("ImportCV state machine", () => {
   it("ready → scoring → scored shows the shared score card", async () => {
     mockedCheckScore.mockResolvedValue(scoreResult());
     const user = await pickFile();
-    await user.click(screen.getByRole("button", { name: "Check ATS score first →" }));
-    expect(await screen.findByText(/ATS score: 67\/100/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Check ATS readiness first →" }));
+    expect(await screen.findByText(/ATS readiness: 67\/100/)).toBeInTheDocument();
     expect(screen.getByText("Good shape. Some quick fixes would make it stronger.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import and fix it in CVify →" })).toBeInTheDocument();
   });
@@ -141,8 +141,8 @@ describe("ImportCV state machine", () => {
       document.querySelector('input[type="file"]') as HTMLInputElement,
       aFile(),
     );
-    await user.click(screen.getByRole("button", { name: "Check ATS score first →" }));
-    await screen.findByText(/ATS score: 67\/100/);
+    await user.click(screen.getByRole("button", { name: "Check ATS readiness first →" }));
+    await screen.findByText(/ATS readiness: 67\/100/);
     await user.click(screen.getByRole("button", { name: "Import and fix it in CVify →" }));
     expect(await screen.findByText(/Found 1 job/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Bring it in" }));
@@ -159,7 +159,7 @@ describe("ImportCV state machine", () => {
       document.querySelector('input[type="file"]') as HTMLInputElement,
       aFile(),
     );
-    await user.click(screen.getByRole("button", { name: "Check ATS score first →" }));
+    await user.click(screen.getByRole("button", { name: "Check ATS readiness first →" }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/Couldn't score it — want to import anyway\?/);
     await user.click(screen.getByRole("button", { name: "Import anyway" }));
@@ -171,7 +171,7 @@ describe("ImportCV state machine", () => {
   it("score failure → 'Pick another file' returns to idle", async () => {
     mockedCheckScore.mockRejectedValue(new Error("timeout"));
     const user = await pickFile();
-    await user.click(screen.getByRole("button", { name: "Check ATS score first →" }));
+    await user.click(screen.getByRole("button", { name: "Check ATS readiness first →" }));
     await screen.findByRole("alert");
     await user.click(screen.getByRole("button", { name: "Pick another file" }));
     expect(screen.getByText("Upload .docx / .pdf")).toBeInTheDocument();

@@ -1,5 +1,5 @@
 /**
- * Shared inline ATS score display, used by every flow that can produce a
+ * Shared inline ATS readiness display, used by every flow that can produce a
  * score: the import flow (score an existing CV before editing), the generate
  * flow (score the file that was just built), and the standalone score
  * checker. Pure presentation plus the bar animation — the parent owns
@@ -98,7 +98,7 @@ export default function ScoreCard({
     >
       <div className="score-head">
         <div className="score-head-text">
-          <span className="score-num">ATS score: {score.score}/100</span>
+          <span className="score-num">ATS readiness: {score.score}/100</span>
           <p className="score-summary">{gradeSummary(score.grade)}</p>
         </div>
         <span className="score-grade" style={{ background: color }}>
@@ -121,6 +121,17 @@ export default function ScoreCard({
         <div className="score-meta">
           <span className="score-chip">
             {score.word_count.toLocaleString()} words
+          </span>
+          <span className="score-chip" title="Heuristic readiness check, not a guarantee from any specific ATS">
+            readiness heuristic
+          </span>
+        </div>
+      ) : null}
+
+      {score.jd_match ? (
+        <div className="score-meta">
+          <span className="score-chip">
+            Job match: {score.jd_match.score}/100 ({score.jd_match.matched.length}/{score.jd_match.jd_keywords} keywords)
           </span>
         </div>
       ) : null}

@@ -1659,7 +1659,7 @@ body {
 }
 
 /* ---------- Score checker (score-only upload) ---------- */
-/* Anchor target for the header/footer "ATS score" links — clears the
+/* Anchor target for the header/footer "ATS readiness" links — clears the
    sticky header plus the sticky section nav when jumped to. */
 #score-checker {
   scroll-margin-top: 132px;
@@ -1716,6 +1716,48 @@ body {
   font-size: 12px;
   color: var(--muted);
   opacity: 0.9;
+}
+/* Job-match field: block-level label-above-textarea following the shared
+   .field visual language (border, radius, focus ring). The previous bare
+   label + unstyled textarea fell back to UA inline defaults, so the long
+   label and the textarea shared one line and the textarea collapsed into
+   a narrow right-side column. */
+.score-jd-field {
+  display: block;
+  min-width: 0;
+  margin-top: 14px;
+}
+.score-jd-field .inline-label {
+  margin-bottom: 6px;
+}
+.score-jd {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 96px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px 13px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: inherit;
+  color: inherit;
+  resize: vertical;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+.score-jd:hover {
+  border-color: #b9c4d6;
+}
+.score-jd:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.15);
 }
 .score-scanning {
   display: block;

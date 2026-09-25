@@ -191,16 +191,23 @@ export default function CVPreview({ cv }: PreviewProps) {
   );
 }
 
-/** ATS readiness checklist shown above the paper preview. */
+/** ATS readiness checklist shown above the paper preview.
+ *
+ * Mirrors the backend scorer's core rules (same email shape, phone =
+ * 7-15 digits ignoring date ranges, >=3 skills, every job needs bullets)
+ * so the live checklist never contradicts /api/score-cv.
+ */
 export function ATSChecks({ cv }: { cv: CVData }) {
-  const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const emailRe = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const digits = (cv.contact.phone.match(/\d/g) ?? []).length;
+  const phoneOk = digits >= 7 && digits <= 15;
   const skillCount = cv.skills.flatMap((g) => g.items).length;
   const fresher = getProfile(cv.profile).key === "fresher";
   const checks = [
     { ok: true, label: "Single-column · real text, no graphics" },
     { ok: cv.name.trim().length >= 2, label: "Name present" },
-    { ok: emailRe.test(cv.contact.email), label: "Valid email" },
-    { ok: Boolean(cv.contact.phone.trim()), label: "Phone present" },
+    { ok: emailRe.test(cv.contact.email.trim()), label: "Valid email" },
+    { ok: phoneOk, label: "Phone present (7–15 digits)" },
     // Mode-aware: fresher CVs are judged on projects, not jobs.
     fresher
       ? { ok: cv.projects.length > 0, label: "At least 1 project" }

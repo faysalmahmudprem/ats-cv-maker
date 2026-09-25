@@ -36,7 +36,7 @@ describe("ScoreCard", () => {
     render(
       <ScoreCard score={result()} useLabel="Use it" onUse={() => {}} />,
     );
-    expect(screen.getByText("ATS score: 67/100")).toBeInTheDocument();
+    expect(screen.getByText("ATS readiness: 67/100")).toBeInTheDocument();
     expect(screen.getByText("B")).toBeInTheDocument();
     expect(
       screen.getByText("Good shape. Some quick fixes would make it stronger."),

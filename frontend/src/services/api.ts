@@ -66,6 +66,13 @@ export interface ScoreResult {
   fix_cta: boolean;
   /** Word count of the scored document (returned by the backend). */
   word_count?: number;
+  /** Optional job-description match supplement (backend only when JD sent). */
+  jd_match?: {
+    score: number;
+    matched: string[];
+    missing: string[];
+    jd_keywords: number;
+  };
 }
 
 /**
@@ -77,7 +84,7 @@ export interface ScoreResult {
  */
 export async function checkScore(
   file: Blob,
-  options: { filename?: string } = {},
+  options: { filename?: string; jobDescription?: string } = {},
 ): Promise<ScoreResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15_000);
@@ -85,6 +92,9 @@ export async function checkScore(
   const name =
     options.filename ?? (file instanceof File && file.name ? file.name : "CV.docx");
   form.append("file", file, name);
+  if (options.jobDescription?.trim()) {
+    form.append("job_description", options.jobDescription.trim().slice(0, 20000));
+  }
 
   try {
     const res = await fetch(`${API_BASE}/api/score-cv`, {

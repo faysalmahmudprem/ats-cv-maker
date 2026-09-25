@@ -119,7 +119,7 @@ export default function App() {
   // visual viewport) — used to hide the fixed bottom bars that would
   // otherwise ride up and cover the focused input.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  // Post-download ATS score: offered after every successful generate, so a
+  // Post-download ATS readiness: offered after every successful generate, so a
   // brand-new CV can be scored the same way an imported one can. The score
   // describes the downloaded file — any later edit drops it.
   const [genScore, setGenScore] = useState<ScoreResult | null>(null);
@@ -226,7 +226,7 @@ export default function App() {
     setMessage("");
   }
 
-  // Header/footer "ATS score" links. On mobile the editor pane is hidden
+  // Header/footer "ATS readiness" links. On mobile the editor pane is hidden
   // unless its tab is active, so switch tabs before scrolling to the card.
   function goToScoreChecker() {
     setMobileTab("editor");
@@ -504,7 +504,7 @@ export default function App() {
           <nav className="nav-links" aria-label="Sections">
             <a href="#editor">Editor</a>
             <a href="#previewTitle">Preview</a>
-            <a href="#score-checker">ATS score</a>
+            <a href="#score-checker">ATS readiness</a>
             <a href="#faq">FAQ</a>
           </nav>
           <div className="nav-cta">
@@ -630,7 +630,7 @@ export default function App() {
 
             <SectionCard
               id="score-checker"
-              title="Check any CV's ATS score"
+              title="Check any CV's ATS readiness"
               subtitle="Already have a CV you like? Score it before you rebuild it — nothing is saved and your editor stays untouched."
             >
               <ScoreChecker />
@@ -758,7 +758,7 @@ export default function App() {
                 <div className="gen-score-offer">
                   <span>Wondering how recruiting software reads it?</span>
                   <Btn variant="soft" onClick={scoreGenerated}>
-                    Check its ATS score
+                    Check its ATS readiness
                   </Btn>
                 </div>
               ) : null}
@@ -925,7 +925,7 @@ export default function App() {
               goToScoreChecker();
             }}
           >
-            ATS score checker
+            ATS readiness checker
           </a>
           <a href="#faq">FAQ</a>
           <a href="#/privacy">Privacy Policy</a>

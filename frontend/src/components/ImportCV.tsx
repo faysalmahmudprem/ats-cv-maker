@@ -7,7 +7,7 @@
  * Flow (state machine):
  *   idle → file picked → "ready"
  *     → "Import and start editing"  → loading → confirm → onImport()
- *     → "Check ATS score first"     → scoring → scored (result inline)
+ *     → "Check ATS readiness first"     → scoring → scored (result inline)
  *         → "Import and fix it in CVify" → existing import flow
  *         → "Check a different file"     → back to idle
  *     score check fails → score_error → import anyway, or pick another file
@@ -184,7 +184,7 @@ export default function ImportCV({ onImport, hasExistingData }: Props) {
           </div>
           <div className="import-scorepitch">
             <Btn variant="soft" onClick={runScore}>
-              Check ATS score first →
+              Check ATS readiness first →
             </Btn>
             <span className="import-pitch">
               See what recruiting software thinks of your CV before you edit.
