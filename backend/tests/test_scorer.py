@@ -339,3 +339,74 @@ def test_stats_endpoint_no_longer_exists(client):
     # The counter (and its filesystem-backed store) was removed deliberately;
     # the endpoint must be gone rather than silently returning stale data.
     assert client.get("/api/stats").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Industry-standard regression suite (senior-dev audit fixes)
+# ---------------------------------------------------------------------------
+
+
+def test_date_range_is_not_a_phone():
+    result = score_cv_text("Junior Developer 2020 - 2021\nnothing else here " * 5)
+    assert result["categories"]["contact"]["score"] == 0
+    titles = {i["title"] for i in result["issues"]}
+    assert "Phone number missing" in titles
+
+
+def test_real_phone_still_passes():
+    result = score_cv_text("Contact me at +880 1000-000000 please " * 5)
+    assert result["categories"]["contact"]["score"] >= 5
+
+
+def test_substring_false_positives_rejected():
+    # "skilled" must not satisfy the "led" verb; "rapid" must not satisfy "api".
+    assert score_cv_text("skilled worker with rapid growth " * 10)["categories"]["keywords"]["score"] < 15
+    titles = {i["title"] for i in score_cv_text("waffle waffle " * 60)["issues"]}
+    assert "No achievement language detected" in titles
+
+
+def test_singular_headings_count():
+    text = "experience education skill summary project certification"
+    assert score_cv_text(text)["categories"]["headings"]["score"] == 10
+
+
+def test_hyphen_dates_are_not_bullets():
+    text = "EXPERIENCE\n2020 - 2021\n- Present\nJust a sentence here"
+    result = score_cv_text(text)
+    titles = {i["title"] for i in result["issues"]}
+    assert "Missing achievement bullets" in titles
+
+
+def test_team_of_counts_as_quantification():
+    text = "Led a team of 3 developers and shipped features " * 10
+    result = score_cv_text(text)
+    titles = {i["title"] for i in result["issues"]}
+    assert "No measurable results" not in titles
+
+
+def test_extended_box_chars_detected():
+    boxed = score_cv_text("Name\n" + "─" * 20 + "\n" + GOOD_CV_TEXT)
+    titles = {i["title"] for i in boxed["issues"]}
+    assert "Complex formatting detected" in titles
+
+
+def test_jd_match_supplement():
+    cv = "Python developer with Django and Docker experience"
+    jd = "We need a Python developer with Django, Docker and AWS experience"
+    result = score_cv_text(cv, job_description=jd)
+    assert "jd_match" in result
+    assert result["jd_match"]["score"] > 0
+    assert "aws" in result["jd_match"]["missing"]
+    # Absolute total unchanged by JD presence (supplement only).
+    assert result["score"] == score_cv_text(cv)["score"]
+
+
+def test_score_cv_endpoint_accepts_jd(client):
+    response = client.post(
+        "/api/score-cv",
+        files={"file": ("cv.docx", io.BytesIO(_docx_upload()), "application/octet-stream")},
+        data={"job_description": "Python developer with Django experience"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["jd_match"]["jd_keywords"] > 0

@@ -7,7 +7,7 @@ import re
 from typing import Any, Dict
 from urllib.parse import quote
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 
@@ -70,11 +70,17 @@ def _content_disposition(name: str, extension: str = "docx") -> str:
     },
     summary="Score an uploaded CV (PDF or DOCX) for ATS readiness",
 )
-async def score_cv(file: UploadFile = File(...)) -> JSONResponse:
-    """Extract text from an uploaded CV and return its ATS score.
+async def score_cv(
+    file: UploadFile = File(...),
+    job_description: str | None = Form(default=None),
+) -> JSONResponse:
+    """Extract text from an uploaded CV and return its ATS readiness score.
 
     In-memory only — nothing is stored. A file that cannot be read at all
     is a 500; a file that reads but scores badly is a perfectly normal 200.
+    When ``job_description`` is supplied (optional form field, max 20k
+    chars), a ``jd_match`` supplement with keyword overlap is included —
+    it never changes the absolute 0-100 readiness total.
     """
     filename = file.filename or ""
     extension = ("." + filename.rsplit(".", 1)[-1].lower()) if "." in filename else ""
@@ -123,7 +129,7 @@ async def score_cv(file: UploadFile = File(...)) -> JSONResponse:
             content={"error": "Could not read the file. It may be corrupted."},
         )
 
-    return JSONResponse(content=score_cv_text(text))
+    return JSONResponse(content=score_cv_text(text, job_description=(job_description or None)[:20000] if job_description else None))
 
 
 @router.post(
