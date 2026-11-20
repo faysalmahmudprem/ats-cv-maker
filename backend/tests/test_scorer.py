@@ -410,3 +410,20 @@ def test_score_cv_endpoint_accepts_jd(client):
     assert response.status_code == 200
     body = response.json()
     assert body["jd_match"]["jd_keywords"] > 0
+
+
+def test_seven_digit_phone_is_detected():
+    result = score_cv_text("Contact me at 5551234 for details " * 5)
+    assert result["categories"]["contact"]["score"] >= 5
+
+
+def test_jd_match_ignores_trailing_punctuation():
+    result = score_cv_text("Python Django developer", "Python. Django. Docker.")
+    assert "django" in result["jd_match"]["matched"]
+    assert "django." not in result["jd_match"]["matched"]
+
+
+def test_short_cv_explains_format_deduction():
+    result = score_cv_text(" ".join(["word"] * 80))
+    assert result["categories"]["format"]["score"] == 15
+    assert "CV is short" in {i["title"] for i in result["issues"]}

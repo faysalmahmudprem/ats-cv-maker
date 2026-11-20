@@ -25,7 +25,7 @@ EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 # Phone candidates are validated by digit-count (7-15 digits), not by raw
 # span length. The old pattern ``\\d[\\d\\s\\-().]{7,}\\d`` matched date
 # ranges such as "2020 - 2021" as phones.
-_PHONE_CANDIDATE_RE = re.compile(r"\+?[\d][\d\s\-().]{6,}[\d]")
+_PHONE_CANDIDATE_RE = re.compile(r"\+?[\d][\d\s\-().]{5,}[\d]")
 _DATE_RANGE_INLINE_RE = re.compile(
     r"\b(?:19|20)\d{2}\s*(?:[-–—]|to)\s*(?:present|current|now|(?:19|20)\d{2})\b",
     re.IGNORECASE,
@@ -233,7 +233,9 @@ def _count_bullets(text: str) -> int:
 
 
 def _tokenize(text: str) -> List[str]:
-    return re.findall(r"[a-zA-Z][a-zA-Z0-9+#.\-]*", text.lower())
+    # Trailing sentence punctuation stays on the token ("Django,"), which
+    # would never match the same word in the CV.
+    return [t.rstrip(".-") for t in re.findall(r"[a-zA-Z][a-zA-Z0-9+#.\-]*", text.lower())]
 
 
 # ---------------------------------------------------------------------------
@@ -271,6 +273,13 @@ def _score_format(text: str) -> tuple[int, int, List[tuple[str, str, str, str]]]
         ))
     if word_count < 100:
         score -= 5
+        if word_count >= 50:
+            issues.append((
+                "medium",
+                "CV is short",
+                f"Only {word_count} words were found — short CVs lose format points.",
+                "Add more detail — aim for 300–900 words",
+            ))
     if 0 < word_count < 50:
         issues.append((
             "high",
