@@ -55,6 +55,7 @@ import {
   draftAgeMinutes,
   hasContent,
   loadDraft,
+  loadDraftSavedAt,
   saveDraft,
 } from "./utils/storage";
 import {
@@ -141,6 +142,7 @@ export default function App() {
 
   const problems: CVProblems = useMemo(() => validateCV(cv), [cv]);
   const warnings: CVWarnings = useMemo(() => cvWarnings(cv), [cv]);
+  const hasCvContent = hasContent(cv);
   const profile = getProfile(cv.profile);
 
   function update(patch: Partial<CVData>) {
@@ -163,7 +165,7 @@ export default function App() {
   // Offer a saved draft once on mount (never restore silently).
   useEffect(() => {
     const draft = loadDraft();
-    if (draft) setDraftInfo(Date.now());
+    if (draft) setDraftInfo(loadDraftSavedAt() ?? Date.now());
   }, []);
 
   // Debounced save: ~500ms after the last change, only when there is
@@ -336,7 +338,7 @@ export default function App() {
   const keepAliveIdRef = useRef<number | null>(null);
   useEffect(() => {
     // No content -> no reason to burn host hours; stop any keep-alive.
-    if (!hasContent(cv)) {
+    if (!hasCvContent) {
       if (keepAliveIdRef.current !== null) {
         window.clearInterval(keepAliveIdRef.current);
         keepAliveIdRef.current = null;
@@ -368,7 +370,7 @@ export default function App() {
         keepAliveIdRef.current = null;
       }
     };
-  }, [cv]);
+  }, [hasCvContent]);
 
   // Keyboard-aware fixed bars: Chrome Android resizes the visual viewport
   // when the keyboard opens and position:fixed elements re-anchor to it —

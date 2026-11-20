@@ -40,6 +40,21 @@ export function loadDraft(): CVData | null {
   }
 }
 
+/** Timestamp of the stored draft, or null when absent/unreadable. */
+export function loadDraftSavedAt(): number | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { version?: number; savedAt?: number };
+    if (parsed.version !== SCHEMA_VERSION || typeof parsed.savedAt !== "number") {
+      return null;
+    }
+    return parsed.savedAt;
+  } catch {
+    return null;
+  }
+}
+
 export function clearDraft(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);

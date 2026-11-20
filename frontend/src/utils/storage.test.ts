@@ -4,6 +4,7 @@ import {
   draftAgeMinutes,
   hasContent,
   loadDraft,
+  loadDraftSavedAt,
   saveDraft,
 } from "./storage";
 import { emptyCV } from "../types/cv";
@@ -44,6 +45,13 @@ describe("saveDraft / loadDraft round-trip", () => {
 
   it("returns null when nothing was saved", () => {
     expect(loadDraft()).toBeNull();
+  });
+
+  it("exposes the timestamp so the restore banner shows the real age", () => {
+    saveDraft(filledCV());
+    expect(typeof loadDraftSavedAt()).toBe("number");
+    clearDraft();
+    expect(loadDraftSavedAt()).toBeNull();
   });
 });
 
