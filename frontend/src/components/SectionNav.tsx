@@ -44,6 +44,7 @@ export function navItemsFor(cv: CVData): NavItem[] {
     { id: SECTION_IDS.skills, label: "Skills", tickKey: "skills" },
   ];
   for (const section of profile.middleSections) {
+    if (section === "extras") continue; // rendered once, after the loop
     items.push({
       id: SECTION_IDS[section],
       label: labelFor[section],
