@@ -38,7 +38,7 @@ export function validateCV(cv: CVData): CVProblems {
   }
   if (!cv.contact.email.trim()) {
     problems.email = "Please enter your email address.";
-  } else if (!EMAIL_RE.test(cv.contact.email)) {
+  } else if (!EMAIL_RE.test(cv.contact.email.trim())) {
     problems.email = "Please enter a valid email address.";
   }
   if (!cv.contact.phone.trim()) {
@@ -106,7 +106,7 @@ export function sectionTicks(cv: CVData): Record<string, boolean> {
     personal:
       cv.name.trim().length >= 2 &&
       !!cv.professional_title.trim() &&
-      EMAIL_RE.test(cv.contact.email) &&
+      EMAIL_RE.test(cv.contact.email.trim()) &&
       !!cv.contact.phone.trim(),
     summary: cv.summary.trim().length > 0,
     skills: cv.skills.length > 0 && cv.skills.every((s) => s.items.length > 0),

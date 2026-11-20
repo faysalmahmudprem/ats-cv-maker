@@ -5,10 +5,11 @@ import { Field } from "./ui";
 interface Props {
   cv: CVData;
   problems: CVProblems;
+  submitted: boolean;
   update: (patch: Partial<CVData>) => void;
 }
 
-export default function PersonalForm({ cv, problems, update }: Props) {
+export default function PersonalForm({ cv, problems, submitted, update }: Props) {
   const c = cv.contact;
 
   function setContact(patch: Partial<CVData["contact"]>) {
@@ -24,7 +25,7 @@ export default function PersonalForm({ cv, problems, update }: Props) {
           maxLength={80}
           required
           autoComplete="name"
-          error={problems.name}
+          error={submitted ? problems.name : ""}
           onChange={(name) => update({ name })}
         />
         <Field
@@ -32,7 +33,7 @@ export default function PersonalForm({ cv, problems, update }: Props) {
           value={cv.professional_title}
           maxLength={80}
           required
-          error={problems.professional_title}
+          error={submitted ? problems.professional_title : ""}
           onChange={(professional_title) => update({ professional_title })}
         />
       </div>
@@ -45,7 +46,7 @@ export default function PersonalForm({ cv, problems, update }: Props) {
           required
           autoComplete="email"
           inputMode="email"
-          error={problems.email}
+          error={submitted ? problems.email : ""}
           onChange={(email) => setContact({ email })}
         />
         <Field
@@ -56,7 +57,7 @@ export default function PersonalForm({ cv, problems, update }: Props) {
           required
           autoComplete="tel"
           inputMode="tel"
-          error={problems.phone}
+          error={submitted ? problems.phone : ""}
           onChange={(phone) => setContact({ phone })}
         />
       </div>

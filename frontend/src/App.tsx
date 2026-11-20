@@ -649,7 +649,7 @@ export default function App() {
               title="Personal information"
               subtitle="Name, title & contact details."
             >
-              <PersonalForm cv={cv} problems={problems} update={update} />
+              <PersonalForm cv={cv} problems={problems} submitted={submitted} update={update} />
               <NextSection targetId={SECTION_IDS.summary} label="Summary" />
             </SectionCard>
 

@@ -75,6 +75,12 @@ describe("validateCV", () => {
     expect(validateCV(cv).email).toBe("");
   });
 
+  it("accepts an email with surrounding whitespace (the backend trims it)", () => {
+    const cv = validExperienced();
+    cv.contact.email = "alex@example.com ";
+    expect(validateCV(cv).email).toBe("");
+  });
+
   it("rejects a whitespace-only phone", () => {
     const cv = validExperienced();
     cv.contact.phone = "   ";
