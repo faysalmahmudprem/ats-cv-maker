@@ -348,3 +348,47 @@ def test_api_pdf_rejects_malformed(client):
         files={"file": ("bad.pdf", io.BytesIO(b"garbage bytes"), "application/pdf")},
     )
     assert res.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Contact / name heuristics: never fabricate data
+# ---------------------------------------------------------------------------
+
+
+def test_date_range_is_not_imported_as_phone():
+    data = generate_docx_bytes(
+        {**SAMPLE_CV, "contact": {**SAMPLE_CV["contact"], "phone": ""}},
+        "classic",
+        "experienced",
+    )
+    cv = parse_cv_file(data, "docx", "x.docx")["cv"]
+    assert cv["contact"]["phone"] == ""
+
+
+def test_degree_is_not_imported_as_portfolio():
+    # The dotted local part is the trap: "alex.smith" looks like a domain.
+    data = generate_docx_bytes(
+        {**SAMPLE_CV, "contact": {**SAMPLE_CV["contact"], "email": "alex.smith@example.com"}},
+        "classic",
+        "experienced",
+    )
+    cv = parse_cv_file(data, "docx", "x.docx")["cv"]
+    assert cv["contact"]["portfolio"] == ""
+
+
+def test_curriculum_vitae_heading_is_not_the_name():
+    from docx import Document
+
+    doc = Document()
+    doc.add_paragraph("Curriculum Vitae")
+    doc.add_paragraph("Alex Example")
+    doc.add_paragraph("Software Engineer")
+    doc.add_paragraph("EXPERIENCE")
+    doc.add_paragraph("Software Engineer | Example Corp")
+    doc.add_paragraph("Jan 2020 - Present")
+    buf = io.BytesIO()
+    doc.save(buf)
+
+    result = parse_cv_file(buf.getvalue(), "docx", "x.docx")
+    assert result["cv"]["name"] == "Alex Example"
+    assert result["cv"]["professional_title"] == "Software Engineer"

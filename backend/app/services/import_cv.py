@@ -55,10 +55,10 @@ DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.docu
 SUPPORTED_EXTENSIONS = {".docx": "docx", ".pdf": "pdf"}
 
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-PHONE_RE = re.compile(r"(\+?\d[\d\s().-]{6,}\d)")
+PHONE_RE = re.compile(r"(\+?\d[\d\s().-]{5,}\d)")
 LINKEDIN_RE = re.compile(r"(?:https?://)?(?:www\.)?linkedin\.com/in/[\w%-]+", re.IGNORECASE)
 GITHUB_RE = re.compile(r"(?:https?://)?(?:www\.)?github\.com/[\w-]+", re.IGNORECASE)
-URL_RE = re.compile(r"(?:https?://)?(?:www\.)?[\w-]+\.[a-z]{2,}(?:/[\w./%-]*)?", re.IGNORECASE)
+URL_RE = re.compile(r"(?:https?://)?(?:www\.)?[\w-]{2,}\.[a-z]{2,}(?:/[\w./%-]*)?", re.IGNORECASE)
 
 DATE_RE = re.compile(
     r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}|\d{4})"
@@ -429,7 +429,18 @@ def _extract_header(lines: List[ParsedLine], result: ImportResult) -> None:
     # Contacts: sweep everywhere (they are often on one wrapped line).
     joined = "\n".join(all_text)
     emails = EMAIL_RE.findall(joined)
-    phones = [p.strip() for p in PHONE_RE.findall(joined)]
+    # Phone-looking spans, minus date ranges ("2019 - 2023") and spans
+    # with an implausible digit count — otherwise a CV with no phone
+    # imports its education dates as the phone number.
+    phones: List[str] = []
+    for raw in PHONE_RE.findall(joined):
+        candidate = raw.strip()
+        digits = sum(c.isdigit() for c in candidate)
+        if not 7 <= digits <= 15:
+            continue
+        if DATE_RE.fullmatch(candidate) or YEAR_RANGE_RE.fullmatch(candidate):
+            continue
+        phones.append(candidate)
     linkedin = LINKEDIN_RE.search(joined)
     github = GITHUB_RE.search(joined)
 
@@ -439,11 +450,16 @@ def _extract_header(lines: List[ParsedLine], result: ImportResult) -> None:
     result.contact["linkedin"] = linkedin.group(0) if linkedin else ""
     result.contact["github"] = github.group(0) if github else ""
 
-    # Portfolio: first URL that is not linkedin/github.
+    # Portfolio: first URL that is not linkedin/github and not part of an
+    # email address ("alex.smith@example.com" must not become a link).
     for u in URL_RE.finditer(joined):
         url = u.group(0)
         if "linkedin." in url or "github." in url:
             continue
+        if u.start() > 0 and joined[u.start() - 1] == "@":
+            continue  # domain of an email
+        if u.end() < len(joined) and joined[u.end()] == "@":
+            continue  # local part of an email
         result.contact["portfolio"] = url
         break
 
@@ -462,6 +478,8 @@ def _extract_header(lines: List[ParsedLine], result: ImportResult) -> None:
     location = ""
     for line in header[:6]:
         t = line.text
+        if _NOISE_HEADINGS.match(t.strip()):
+            continue  # "Curriculum Vitae" / "Resume" is a label, not the name.
         if EMAIL_RE.search(t) or URL_RE.search(t) or PHONE_RE.search(t):
             continue
         words = t.split()
